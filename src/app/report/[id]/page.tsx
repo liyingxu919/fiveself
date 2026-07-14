@@ -1,10 +1,8 @@
-import { client } from "@/sanity/lib/client";
-import { notFound } from "next/navigation";
 import { WUXING_NAMES, WUXING_NAMES_EN, WUXING_COLORS } from "@/lib/bazi";
 import type { ReportContent } from "@/lib/report-generator";
 import type { Metadata } from "next";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -12,8 +10,15 @@ interface Props {
 
 async function getReport(id: string): Promise<ReportContent | null> {
   try {
-    const query = `*[_type == "report" && reportId == $id][0]`;
-    return await client.fetch(query, { id });
+    const sanityRes = await fetch(
+      `https://penxmsws.api.sanity.io/v1/data/query/production?query=*[_type=="report"&&reportId=="${id}"][0]{content}`,
+      { next: { revalidate: 0 }, signal: AbortSignal.timeout(8000) }
+    );
+    if (!sanityRes.ok) return null;
+    const json = await sanityRes.json();
+    const doc = json?.result;
+    if (!doc?.content) return null;
+    return JSON.parse(doc.content) as ReportContent;
   } catch {
     return null;
   }
