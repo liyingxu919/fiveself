@@ -24,6 +24,9 @@ export interface ReportContent {
   dayMaster: { gan: string; ganEn: string; wuxing: string; wuxingEn: string; color: string };
 
   // 五行分布
+  dominantElement: number;
+  secondaryElement: number;
+
   wuxingDistribution: Array<{
     name: string; nameEn: string; count: number; percentage: number;
     color: string; barWidth: number;
@@ -80,7 +83,7 @@ export function generateReportContent(
     barWidth: Math.max(4, Math.round((count / total) * 100)),
   }));
 
-  // 主导元素
+  // 主导元素索引（挂到 ReportContent 上供报告页使用）
   const domIdx = bazi.dominantElement;
   const secIdx = bazi.secondaryElement;
   const domName = WUXING_NAMES[domIdx];
@@ -236,6 +239,9 @@ export function generateReportContent(
       wuxing: dmWuxingName, wuxingEn: dmWuxingNameEn,
       color: WUXING_COLORS[dmWuxing],
     },
+
+    dominantElement: domIdx,
+    secondaryElement: secIdx,
 
     wuxingDistribution,
 
