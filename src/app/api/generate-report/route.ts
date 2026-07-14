@@ -1,17 +1,10 @@
 import { NextResponse } from "next/server";
 import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
-import { createClient } from "@sanity/client";
-
-// Separate client with write token for saving reports
-const sanityWriteClient = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "penxmsws",
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || "production",
-  apiVersion: "2025-07-02",
-  useCdn: false,
-  token: process.env.SANITY_WRITE_TOKEN,
-  timeout: 10000,
-});
+const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "penxmsws";
+const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
+const SANITY_WRITE_TOKEN = process.env.SANITY_WRITE_TOKEN || "";
+const SANITY_API = `https://${SANITY_PROJECT_ID}.api.sanity.io/v1/data/mutate/${SANITY_DATASET}`;
 
 // Resend API for email delivery (https://resend.com)
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
@@ -56,20 +49,38 @@ export async function POST(request: Request) {
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;
     let reportSaved = false;
     let saveError = "";
-    try {
-      await sanityWriteClient.create({
-        _type: "report",
-        reportId: report.reportId,
-        customerName: name,
-        customerEmail: email,
-        birthDate: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
-        content: JSON.stringify(report),
-        generatedAt: new Date().toISOString(),
-      });
-      reportSaved = true;
-    } catch (err: any) {
-      saveError = err?.message || String(err);
-      console.error("Sanity save error:", saveError);
+    if (SANITY_WRITE_TOKEN) {
+      try {
+        const saveRes = await fetch(SANITY_API, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${SANITY_WRITE_TOKEN}`,
+          },
+          body: JSON.stringify({
+            mutations: [{
+              create: {
+                _type: "report",
+                reportId: report.reportId,
+                customerName: name,
+                customerEmail: email,
+                birthDate: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+                content: JSON.stringify(report),
+                generatedAt: new Date().toISOString(),
+              },
+            }],
+          }),
+        });
+        if (saveRes.ok) {
+          reportSaved = true;
+        } else {
+          saveError = `Sanity HTTP ${saveRes.status}: ${await saveRes.text()}`;
+        }
+      } catch (err: any) {
+        saveError = err?.message || String(err);
+      }
+    } else {
+      saveError = "SANITY_WRITE_TOKEN not set";
     }
 
     // Build HTML email with report link
