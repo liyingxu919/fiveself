@@ -1,0 +1,62 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { ShoppingBag, User, Menu, X } from "lucide-react";
+import { useLang } from "@/i18n/LanguageContext";
+import { useSanityContent } from "@/i18n/SanityContentContext";
+
+export default function SiteHeader() {
+  const [open, setOpen] = useState(false);
+  const { lang, toggleLang, t } = useLang();
+  const { siteSettings } = useSanityContent();
+
+  const brandName = siteSettings?.[`brandName${lang === "en" ? "En" : "Zh"}`] || t.shared.brandName[lang];
+
+  const navItems = [
+    { label: t.nav.shop[lang], href: "/shop" },
+    { label: t.nav.howItWorks[lang], href: "/#how-it-works" },
+    { label: t.nav.sampleReport[lang], href: "/#sample" },
+    { label: t.nav.about[lang], href: "/about" },
+    { label: t.nav.faqs[lang], href: "/#faq" },
+  ];
+
+  return (
+    <header className="sticky top-0 z-50 h-[72px] bg-[rgba(250,248,243,0.94)] backdrop-blur-[8px] border-b border-[rgba(50,45,38,0.08)]">
+      <div className="container-main flex h-full items-center justify-between">
+        <Link href="/" className="font-[var(--font-display)] text-xl font-medium tracking-wide text-[var(--color-text-main)]">
+          {brandName}
+        </Link>
+        <nav className="hidden items-center gap-8 md:flex">
+          {navItems.map((item) => (
+            <Link key={item.label} href={item.href} className="text-[13px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)] transition-colors duration-300">
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="hidden items-center gap-4 md:flex">
+          <button onClick={toggleLang} className="text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)] transition-colors">
+            {lang === "en" ? "中" : "EN"}
+          </button>
+          <button className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)] transition-colors" aria-label="Account"><User size={16} /></button>
+          <button className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-main)] transition-colors" aria-label="Cart"><ShoppingBag size={16} /></button>
+        </div>
+        <button className="md:hidden text-[var(--color-text-main)]" onClick={() => setOpen(!open)} aria-label="Menu">
+          {open ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+      {open && (
+        <nav className="md:hidden border-t border-[var(--color-border)] bg-[var(--color-bg-light)]">
+          <div className="container-main flex flex-col gap-4 py-6">
+            {navItems.map((item) => <Link key={item.label} href={item.href} className="text-sm font-medium text-[var(--color-text-main)]" onClick={() => setOpen(false)}>{item.label}</Link>)}
+            <div className="flex items-center gap-6 pt-2 border-t border-[var(--color-border)]">
+              <button onClick={toggleLang} className="text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-text-secondary)]">{lang === "en" ? "中" : "EN"}</button>
+              <User size={16} className="text-[var(--color-text-secondary)]" />
+              <ShoppingBag size={16} className="text-[var(--color-text-secondary)]" />
+            </div>
+          </div>
+        </nav>
+      )}
+    </header>
+  );
+}

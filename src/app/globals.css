@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/* ── Design Tokens ── */
+:root {
+  --color-bg-main: #f5f1e9;
+  --color-bg-light: #fbfaf7;
+  --color-bg-warm: #eee7dc;
+
+  --color-text-main: #1d1d19;
+  --color-text-secondary: #6f6a61;
+  --color-border: #ded7cc;
+
+  --color-green-dark: #26382c;
+  --color-green-muted: #64705e;
+
+  --color-terracotta: #b5654d;
+  --color-earth: #a9865c;
+  --color-gold-muted: #b49b71;
+
+  --color-white: #ffffff;
+
+  --font-display: "Cormorant Garamond", "Playfair Display", serif;
+  --font-body: "Inter", "Manrope", sans-serif;
+  --font-cn-display: "Noto Serif SC", "Source Han Serif SC", serif;
+}
+
+@theme inline {
+  --color-bg-main: var(--color-bg-main);
+  --color-bg-light: var(--color-bg-light);
+  --color-bg-warm: var(--color-bg-warm);
+  --color-text-main: var(--color-text-main);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-border: var(--color-border);
+  --color-green-dark: var(--color-green-dark);
+  --color-green-muted: var(--color-green-muted);
+  --color-terracotta: var(--color-terracotta);
+  --color-earth: var(--color-earth);
+  --color-gold-muted: var(--color-gold-muted);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-cn-display: var(--font-cn-display);
+}
+
+/* ── Global Reset ── */
+body {
+  background-color: var(--color-bg-main);
+  color: var(--color-text-main);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Paper texture overlay ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* ── Typography ── */
+h1 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 5vw, 72px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--color-text-main);
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 3.6vw, 52px);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--color-text-main);
+}
+
+h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--color-text-main);
+}
+
+/* ── Section Layout ── */
+.section {
+  padding-block: 6rem;
+}
+
+.container-main {
+  width: min(100% - 4rem, 1240px);
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .container-main {
+    width: min(100% - 2.5rem, 1240px);
+  }
+  .section {
+    padding-block: 4rem;
+  }
+  h1 {
+    font-size: 36px;
+  }
+  h2 {
+    font-size: 28px;
+  }
+}
+
+/* ── Eyebrow ── */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* ── Decor watermark layer ── */
+.decor-section {
+  position: relative;
+}
+.decor-section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.1;
+  background:
+    radial-gradient(ellipse 400px 300px at 85% 20%, var(--color-green-muted) 0%, transparent 100%),
+    radial-gradient(ellipse 300px 250px at 15% 80%, var(--color-earth) 0%, transparent 100%);
+}

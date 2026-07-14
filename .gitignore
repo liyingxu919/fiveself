@@ -1,0 +1,21 @@
+# Next.js
+/.next
+/out
+
+# Dependencies
+/node_modules
+
+# Sanity
+/dist
+/.sanity
+
+# Logs
+/logs
+*.log
+
+# Misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+*.local
+.env
