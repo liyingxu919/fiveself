@@ -1,3 +1,5 @@
+export const revalidate = 60;
+
 import { client } from "@/sanity/lib/client";
 import { SITE_SETTINGS_QUERY, ABOUT_PAGE_QUERY } from "@/sanity/lib/queries";
 import { SanityContentProvider, type SanityContent } from "@/i18n/SanityContentContext";

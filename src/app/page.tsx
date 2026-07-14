@@ -1,3 +1,5 @@
+export const revalidate = 60; // 每60秒刷新Sanity数据
+
 import { client } from "@/sanity/lib/client";
 import { HOME_PAGE_QUERY, SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
 import { SanityContentProvider, type SanityContent } from "@/i18n/SanityContentContext";
