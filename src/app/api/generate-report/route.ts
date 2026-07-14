@@ -55,6 +55,7 @@ export async function POST(request: Request) {
     // Save report to Sanity for online access
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;
     let reportSaved = false;
+    let saveError = "";
     try {
       await sanityWriteClient.create({
         _type: "report",
@@ -66,8 +67,9 @@ export async function POST(request: Request) {
         generatedAt: new Date().toISOString(),
       });
       reportSaved = true;
-    } catch (saveErr) {
-      console.error("Sanity save error:", saveErr);
+    } catch (err: any) {
+      saveError = err?.message || String(err);
+      console.error("Sanity save error:", saveError);
     }
 
     // Build HTML email with report link
@@ -116,6 +118,7 @@ export async function POST(request: Request) {
       emailSent,
       reportSaved,
       reportUrl: reportSaved ? reportUrl : null,
+      saveError: saveError || null,
       preview: {
         dayMaster: report.dayMaster,
         bazi: report.baziDisplay,
