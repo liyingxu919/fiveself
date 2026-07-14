@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
+import { client as sanityClient } from "@/sanity/lib/client";
 
 // Resend API for email delivery (https://resend.com)
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
-const FROM_EMAIL = process.env.FROM_EMAIL || "hello@orientaldestiny.com";
+const FROM_EMAIL = process.env.FROM_EMAIL || "hello@fiveself.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.fiveself.com";
 
 export async function POST(request: Request) {
   try {
@@ -40,12 +42,30 @@ export async function POST(request: Request) {
       `${String(h).padStart(2, "0")}:00`
     );
 
-    // Build HTML email
-    const htmlEmail = buildEmailHTML(report, product || "five-elements-blueprint");
+    // Save report to Sanity for online access
+    const reportUrl = `${SITE_URL}/report/${report.reportId}`;
+    let reportSaved = false;
+    try {
+      await sanityClient.create({
+        _type: "report",
+        reportId: report.reportId,
+        customerName: name,
+        customerEmail: email,
+        birthDate: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+        content: JSON.stringify(report),
+        generatedAt: new Date().toISOString(),
+      });
+      reportSaved = true;
+    } catch (saveErr) {
+      console.error("Sanity save error:", saveErr);
+    }
 
-    // Send email via Resend (or fallback to logging)
+    // Build HTML email with report link
+    const htmlEmail = buildEmailHTML(report, product || "five-elements-blueprint", reportUrl);
+
+    // Send email via Resend
     let emailSent = false;
-    if (RESEND_API_KEY && RESEND_API_KEY !== "resend_api_key_here") {
+    if (RESEND_API_KEY && RESEND_API_KEY !== "re_placeholder_replace_with_your_key") {
       try {
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -54,7 +74,7 @@ export async function POST(request: Request) {
             Authorization: `Bearer ${RESEND_API_KEY}`,
           },
           body: JSON.stringify({
-            from: `Oriental Aesthetic <${FROM_EMAIL}>`,
+            from: `FiveSelf <${FROM_EMAIL}>`,
             to: [email],
             subject: `Your Five Elements Blueprint — ${report.reportId}`,
             html: htmlEmail,
@@ -72,7 +92,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // If no email configured, save report to Sanity or log
+    // Fallback logging
     if (!emailSent) {
       console.log(`[REPORT] ${report.reportId} for ${name} <${email}>`);
       console.log(`  Bazi: ${report.baziDisplay.year} ${report.baziDisplay.month} ${report.baziDisplay.day} ${report.baziDisplay.hour}`);
@@ -84,6 +104,8 @@ export async function POST(request: Request) {
       success: true,
       reportId: report.reportId,
       emailSent,
+      reportSaved,
+      reportUrl: reportSaved ? reportUrl : null,
       preview: {
         dayMaster: report.dayMaster,
         bazi: report.baziDisplay,
@@ -100,7 +122,7 @@ export async function POST(request: Request) {
   }
 }
 
-function buildEmailHTML(report: ReturnType<typeof generateReportContent>, product: string): string {
+function buildEmailHTML(report: ReturnType<typeof generateReportContent>, product: string, reportUrl: string): string {
   const wd = report.wuxingDistribution;
   const dm = report.dayMaster;
 
@@ -115,6 +137,9 @@ function buildEmailHTML(report: ReturnType<typeof generateReportContent>, produc
     </h1>
     <p style="color: #8A8178; font-size: 13px; margin: 0;">
       A Personal Visual Publication &middot; ${report.reportId}
+    </p>
+    <p style="color: #8A8178; font-size: 12px; margin: 4px 0 0;">
+      Prepared for ${report.customerName}
     </p>
   </div>
 
@@ -134,22 +159,10 @@ function buildEmailHTML(report: ReturnType<typeof generateReportContent>, produc
         <span>${w.nameEn} ${w.name}</span><span>${w.count} (${w.percentage}%)</span>
       </div>
       <div style="height: 8px; background: #EDE8DE; border-radius: 2px;">
-        <div style="height: 8px; width: ${w.barWidth}%; background: ${w.color}; border-radius: 2px;"></div>
+        <div style="height: 8px; width: ${Math.max(3, w.barWidth)}%; background: ${w.color}; border-radius: 2px;"></div>
       </div>
     </div>
   `).join("")}
-
-  <h2 style="font-size: 18px; color: #2B2318; margin: 24px 0 12px; font-weight: 400;">
-    Your Color Palette
-  </h2>
-  <div style="display: flex; gap: 8px; margin-bottom: 24px;">
-    ${report.colorPalette.map(c => `
-      <div style="flex: 1; text-align: center;">
-        <div style="height: 48px; background: ${c.hex}; border-radius: 2px; margin-bottom: 4px;"></div>
-        <p style="font-size: 8px; color: #8A8178; margin: 0;">${c.name}</p>
-      </div>
-    `).join("")}
-  </div>
 
   <div style="background: #F9F6F0; padding: 20px; margin: 24px 0;">
     <p style="font-size: 13px; color: #3A342C; margin: 0 0 8px;">
@@ -157,16 +170,22 @@ function buildEmailHTML(report: ReturnType<typeof generateReportContent>, produc
     </p>
     <p style="font-size: 12px; color: #8A8178; margin: 0; line-height: 1.6;">
       ${report.elementAnalysis.dominant.descEn}
-      <br>${report.elementAnalysis.dominant.desc}
+    </p>
+  </div>
+
+  <!-- View Full Report Button -->
+  <div style="text-align: center; margin: 32px 0;">
+    <a href="${reportUrl}" style="display: inline-block; background: #26382c; color: #fff; padding: 14px 32px; text-decoration: none; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;">
+      View Your Full Report →
+    </a>
+    <p style="color: #8A8178; font-size: 11px; margin: 8px 0 0;">
+      Open and print to PDF for your personal copy
     </p>
   </div>
 
   <div style="text-align: center; padding-top: 24px; border-top: 1px solid #E3DBCC; margin-top: 32px;">
-    <p style="font-size: 13px; color: #2B2318; margin: 0 0 4px;">
-      Your complete Blueprint PDF will be delivered within 3–5 business days.
-    </p>
     <p style="font-size: 11px; color: #8A8178; margin: 0;">
-      Oriental Aesthetic Studio &middot; Personal. Beautiful. Elemental.
+      FiveSelf Studio &middot; Personal. Beautiful. Elemental.
     </p>
   </div>
 

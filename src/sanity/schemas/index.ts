@@ -3,6 +3,7 @@ import { testimonialSchema } from "./testimonial";
 import { siteSettingsSchema } from "./siteSettings";
 import { homePageSchema } from "./homePage";
 import { aboutPageSchema } from "./aboutPage";
+import { reportSchema } from "./report";
 
 export const schemas = [
   productSchema,
@@ -10,4 +11,5 @@ export const schemas = [
   siteSettingsSchema,
   homePageSchema,
   aboutPageSchema,
+  reportSchema,
 ];
