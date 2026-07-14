@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
-const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "penxmsws";
-const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
-const SANITY_WRITE_TOKEN = process.env.SANITY_WRITE_TOKEN || "";
+const SANITY_PROJECT_ID = "penxmsws";
+const SANITY_DATASET = "production";
 const SANITY_API = `https://${SANITY_PROJECT_ID}.api.sanity.io/v1/data/mutate/${SANITY_DATASET}`;
 
 // Resend API for email delivery (https://resend.com)
@@ -49,13 +48,14 @@ export async function POST(request: Request) {
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;
     let reportSaved = false;
     let saveError = "";
-    if (SANITY_WRITE_TOKEN) {
+    const writeToken = process.env.SANITY_WRITE_TOKEN || "";
+    if (writeToken) {
       try {
         const saveRes = await fetch(SANITY_API, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${SANITY_WRITE_TOKEN}`,
+            Authorization: `Bearer ${writeToken}`,
           },
           body: JSON.stringify({
             mutations: [{
@@ -71,16 +71,17 @@ export async function POST(request: Request) {
             }],
           }),
         });
+        const saveBody = await saveRes.text();
         if (saveRes.ok) {
           reportSaved = true;
         } else {
-          saveError = `Sanity HTTP ${saveRes.status}: ${await saveRes.text()}`;
+          saveError = `Sanity ${saveRes.status}: ${saveBody}`;
         }
       } catch (err: any) {
         saveError = err?.message || String(err);
       }
     } else {
-      saveError = `Token status: PROJECT=${SANITY_PROJECT_ID}, TOKEN_LEN=${SANITY_WRITE_TOKEN.length}, DATASET=${SANITY_DATASET}`;
+      saveError = "no_token";
     }
 
     // Build HTML email with report link
