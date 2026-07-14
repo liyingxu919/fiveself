@@ -9,19 +9,27 @@ interface Props {
 }
 
 async function getReport(id: string): Promise<ReportContent | null> {
-  try {
-    const sanityRes = await fetch(
-      `https://penxmsws.api.sanity.io/v1/data/query/production?query=*[_type=="report"&&reportId=="${id}"][0]{content}`,
-      { next: { revalidate: 0 }, signal: AbortSignal.timeout(8000) }
-    );
-    if (!sanityRes.ok) return null;
-    const json = await sanityRes.json();
-    const doc = json?.result;
-    if (!doc?.content) return null;
-    return JSON.parse(doc.content) as ReportContent;
-  } catch {
-    return null;
+  // Try both CDN and API endpoints
+  const urls = [
+    `https://penxmsws.apicdn.sanity.io/v1/data/query/production?query=*[_type=="report"&&reportId=="${id}"][0]{content}`,
+    `https://penxmsws.api.sanity.io/v1/data/query/production?query=*[_type=="report"&&reportId=="${id}"][0]{content}`,
+  ];
+  for (const url of urls) {
+    try {
+      const sanityRes = await fetch(url, {
+        next: { revalidate: 0 },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!sanityRes.ok) continue;
+      const json = await sanityRes.json();
+      const doc = json?.result;
+      if (!doc?.content) continue;
+      return JSON.parse(doc.content) as ReportContent;
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
