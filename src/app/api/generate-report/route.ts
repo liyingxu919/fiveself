@@ -63,6 +63,9 @@ export async function POST(request: Request) {
 
         if (res.ok) {
           emailSent = true;
+        } else {
+          const errBody = await res.text();
+          console.error("Resend error:", res.status, errBody);
         }
       } catch (emailErr) {
         console.error("Email send error:", emailErr);
