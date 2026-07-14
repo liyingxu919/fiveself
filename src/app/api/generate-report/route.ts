@@ -80,7 +80,7 @@ export async function POST(request: Request) {
         saveError = err?.message || String(err);
       }
     } else {
-      saveError = "SANITY_WRITE_TOKEN not set";
+      saveError = `Token status: PROJECT=${SANITY_PROJECT_ID}, TOKEN_LEN=${SANITY_WRITE_TOKEN.length}, DATASET=${SANITY_DATASET}`;
     }
 
     // Build HTML email with report link
