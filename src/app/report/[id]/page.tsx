@@ -1,51 +1,49 @@
-import { WUXING_NAMES, WUXING_NAMES_EN, WUXING_COLORS } from "@/lib/bazi";
+"use client";
+
+import { useEffect, useState, use } from "react";
+import { WUXING_COLORS } from "@/lib/bazi";
 import type { ReportContent } from "@/lib/report-generator";
-import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [report, setReport] = useState<ReportContent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-interface Props {
-  params: Promise<{ id: string }>;
-}
-
-async function getReport(id: string): Promise<ReportContent | null> {
-  // Try both CDN and API endpoints
-  const urls = [
-    `https://penxmsws.apicdn.sanity.io/v1/data/query/production?query=*[_type=="report"&&reportId=="${id}"][0]{content}`,
-    `https://penxmsws.api.sanity.io/v1/data/query/production?query=*[_type=="report"&&reportId=="${id}"][0]{content}`,
-  ];
-  for (const url of urls) {
-    try {
-      const sanityRes = await fetch(url, {
-        next: { revalidate: 0 },
-        signal: AbortSignal.timeout(10000),
-      });
-      if (!sanityRes.ok) continue;
-      const json = await sanityRes.json();
-      const doc = json?.result;
-      if (!doc?.content) continue;
-      return JSON.parse(doc.content) as ReportContent;
-    } catch {
-      continue;
+  useEffect(() => {
+    async function load() {
+      try {
+        // Fetch directly from browser - bypasses Vercel server network issues
+        const url = `https://penxmsws.api.sanity.io/v1/data/query/production?query=*[_type=="report"&&reportId=="${id}"][0]{content}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const content = json?.result?.content;
+        if (!content) throw new Error("No content found");
+        setReport(typeof content === "string" ? JSON.parse(content) : content);
+      } catch (e: any) {
+        setError(e?.message || "Failed to load report");
+      } finally {
+        setLoading(false);
+      }
     }
-  }
-  return null;
-}
+    load();
+  }, [id]);
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  return { title: `Five Elements Blueprint · ${id}` };
-}
-
-export default async function ReportPage({ params }: Props) {
-  const { id } = await params;
-  const report = await getReport(id);
-
-  if (!report) {
+  if (loading) {
     return (
-      <div style={{ padding: "80px 20px", textAlign: "center", fontFamily: "Georgia, serif", color: "#2B2318", background: "#F9F6F0", minHeight: "100vh" }}>
-        <h1 style={{ fontWeight: 400 }}>Report not found</h1>
-        <p style={{ color: "#8A8178" }}>This report may have expired. Please contact us for a new one.</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F9F6F0", fontFamily: "Georgia, serif", color: "#2B2318" }}>
+        <p style={{ fontSize: 16 }}>Loading your Blueprint...</p>
+      </div>
+    );
+  }
+
+  if (error || !report) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F9F6F0", fontFamily: "Georgia, serif", color: "#2B2318", padding: 40, textAlign: "center" }}>
+        <h1 style={{ fontWeight: 400, marginBottom: 16 }}>Report not found</h1>
+        <p style={{ color: "#8A8178", marginBottom: 24 }}>This report may have expired or the link is incorrect.</p>
+        <a href="/order" style={{ color: "#26382c", textDecoration: "underline" }}>Generate a new report →</a>
       </div>
     );
   }
@@ -53,13 +51,13 @@ export default async function ReportPage({ params }: Props) {
   const dm = report.dayMaster;
   const wd = report.wuxingDistribution;
   const an = report.elementAnalysis;
+  const domIdx = report.dominantElement ?? 2;
+  const secIdx = report.secondaryElement ?? 4;
 
   return (
     <div style={{ fontFamily: "Georgia, 'Noto Serif SC', serif", background: "#F9F6F0", minHeight: "100vh", color: "#2B2318" }}>
-      {/* Print styles */}
       <style>{`@media print { body { background: #fff !important; } .no-print { display: none !important; } }`}</style>
 
-      {/* Download button */}
       <div className="no-print" style={{ position: "fixed", top: 20, right: 20, zIndex: 100 }}>
         <button onClick={() => window.print()} style={{
           background: "#26382c", color: "#fff", border: "none", padding: "12px 24px",
@@ -77,16 +75,12 @@ export default async function ReportPage({ params }: Props) {
         <h1 style={{ fontSize: "clamp(32px,5vw,56px)", fontWeight: 300, margin: "0 0 8px", lineHeight: 1.1 }}>
           Five Elements<br />Visual Blueprint
         </h1>
-        <p style={{ fontSize: 18, color: "#B8975A", margin: "16px 0" }}>
-          五行视觉能量报告
-        </p>
+        <p style={{ fontSize: 18, color: "#B8975A", margin: "16px 0" }}>五行视觉能量报告</p>
         <p style={{ color: "#8A8178", fontSize: 13 }}>
           Prepared for <strong style={{ color: "#2B2318" }}>{report.customerName}</strong>
-          {" · "} {report.birthDate} {report.birthTime && `· ${report.birthTime}`}
+          {" · "} {report.birthDate}
         </p>
-        <p style={{ color: "#B8975A", fontSize: 11, marginTop: 8 }}>
-          {report.reportId}
-        </p>
+        <p style={{ color: "#B8975A", fontSize: 11, marginTop: 8 }}>{report.reportId}</p>
       </div>
 
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 20px" }}>
@@ -139,16 +133,14 @@ export default async function ReportPage({ params }: Props) {
             </div>
           </div>
         ))}
-        <p style={{ textAlign: "center", color: "#8A8178", fontSize: 13, marginTop: 8 }}>
-          {report.elementAnalysis.profile}
-        </p>
+        <p style={{ textAlign: "center", color: "#8A8178", fontSize: 13, marginTop: 8 }}>{report.elementAnalysis.profile}</p>
 
-        {/* Element Analysis */}
+        {/* Dominant */}
         <div style={{ background: "#F3EFE7", padding: 28, margin: "32px 0" }}>
           <h2 style={{ fontSize: 18, fontWeight: 400, margin: "0 0 16px", color: "#9B6E4E" }}>
             Dominant Element · 主导元素
           </h2>
-          <p style={{ fontSize: 32, margin: "0 0 8px", color: WUXING_COLORS[report.dominantElement] }}>
+          <p style={{ fontSize: 32, margin: "0 0 8px", color: WUXING_COLORS[domIdx] }}>
             {an.dominant.nameEn} {an.dominant.name}
           </p>
           <p style={{ fontSize: 13, lineHeight: 1.8, color: "#3A342C", margin: 0 }}>
@@ -156,11 +148,12 @@ export default async function ReportPage({ params }: Props) {
           </p>
         </div>
 
+        {/* Secondary */}
         <div style={{ background: "#F3EFE7", padding: 28, margin: "24px 0" }}>
           <h2 style={{ fontSize: 18, fontWeight: 400, margin: "0 0 16px", color: "#9B6E4E" }}>
             Secondary Element · 次要元素
           </h2>
-          <p style={{ fontSize: 24, margin: "0 0 8px", color: WUXING_COLORS[report.secondaryElement] }}>
+          <p style={{ fontSize: 24, margin: "0 0 8px", color: WUXING_COLORS[secIdx] }}>
             {an.secondary.nameEn} {an.secondary.name}
           </p>
           <p style={{ fontSize: 13, lineHeight: 1.8, color: "#3A342C", margin: 0 }}>
@@ -174,9 +167,6 @@ export default async function ReportPage({ params }: Props) {
               Missing Elements · 缺失五行：
               {an.missing.map(m => ` ${m.nameEn}(${m.name})`).join("、")}
             </p>
-            <p style={{ fontSize: 11, color: "#B4A89A", margin: "4px 0 0" }}>
-              Consider adding these elements to your surroundings for balance.
-            </p>
           </div>
         )}
 
@@ -189,7 +179,6 @@ export default async function ReportPage({ params }: Props) {
             <div key={i} style={{ flex: 1, textAlign: "center" }}>
               <div style={{ height: 64, background: c.hex, borderRadius: 2, marginBottom: 6 }} />
               <p style={{ fontSize: 10, color: "#3A342C", margin: "0 0 2px" }}>{c.name}</p>
-              <p style={{ fontSize: 9, color: "#8A8178", margin: 0 }}>{c.use}</p>
             </div>
           ))}
         </div>
@@ -227,37 +216,10 @@ export default async function ReportPage({ params }: Props) {
           ))}
         </div>
 
-        {/* Totem */}
-        <h2 style={{ fontSize: 20, fontWeight: 400, margin: "48px 0 16px", textAlign: "center" }}>
-          Your Personal Totem · 你的专属图腾
-        </h2>
-        <div style={{ textAlign: "center", padding: 32, background: "#F3EFE7", border: "1px solid #E3DBCC" }}>
-          <p style={{ fontSize: 13, lineHeight: 1.8, color: "#3A342C", margin: 0 }}>
-            {report.totemDescription.en}
-          </p>
-          <p style={{ fontSize: 12, lineHeight: 1.8, color: "#8A8178", margin: "8px 0 0" }}>
-            {report.totemDescription.cn}
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 16 }}>
-            {report.totemElements.map((e, i) => (
-              <span key={i} style={{ fontSize: 11, color: "#B8975A", border: "1px solid #B8975A", padding: "4px 12px", borderRadius: 2 }}>
-                {e}
-              </span>
-            ))}
-          </div>
-        </div>
-
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 64, paddingTop: 24, borderTop: "1px solid #E3DBCC" }}>
-          <p style={{ fontSize: 16, color: "#2B2318", margin: "0 0 4px" }}>
-            Personal. Beautiful. Elemental.
-          </p>
-          <p style={{ fontSize: 11, color: "#8A8178", margin: 0 }}>
-            Oriental Aesthetic Studio · {report.reportId}
-          </p>
-          <p style={{ fontSize: 11, color: "#B4A89A", margin: "4px 0 0" }}>
-            This is a personal visual publication, not a prediction. Think of it as a mirror, not a map.
-          </p>
+          <p style={{ fontSize: 16, color: "#2B2318", margin: "0 0 4px" }}>Personal. Beautiful. Elemental.</p>
+          <p style={{ fontSize: 11, color: "#8A8178", margin: 0 }}>FiveSelf Studio · {report.reportId}</p>
         </div>
       </div>
     </div>
