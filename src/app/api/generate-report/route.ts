@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
-import { client as sanityClient } from "@/sanity/lib/client";
+import { createClient } from "@sanity/client";
+
+// Separate client with write token for saving reports
+const sanityWriteClient = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "penxmsws",
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || "production",
+  apiVersion: "2025-07-02",
+  useCdn: false,
+  token: process.env.SANITY_WRITE_TOKEN,
+  timeout: 10000,
+});
 
 // Resend API for email delivery (https://resend.com)
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
@@ -46,7 +56,7 @@ export async function POST(request: Request) {
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;
     let reportSaved = false;
     try {
-      await sanityClient.create({
+      await sanityWriteClient.create({
         _type: "report",
         reportId: report.reportId,
         customerName: name,
