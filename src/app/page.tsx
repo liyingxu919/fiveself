@@ -1,8 +1,7 @@
-export const revalidate = 60; // 每60秒刷新Sanity数据
+export const revalidate = 60;
 
-import { client } from "@/sanity/lib/client";
-import { HOME_PAGE_QUERY, SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
 import { SanityContentProvider, type SanityContent } from "@/i18n/SanityContentContext";
+import { HOME_PAGE_QUERY, SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import HeroSection from "@/components/home/HeroSection";
@@ -14,16 +13,32 @@ import MissionSection from "@/components/home/MissionSection";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
 import FaqSection from "@/components/home/FaqSection";
 
+const SANITY_CDN = "https://penxmsws.apicdn.sanity.io/v1/data/query/production";
+
+async function fetchSanity(query: string): Promise<SanityContent> {
+  try {
+    const res = await fetch(`${SANITY_CDN}?query=${encodeURIComponent(query)}`, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.result ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function Home() {
   let homePage: SanityContent = null;
   let siteSettings: SanityContent = null;
 
   try {
     [homePage, siteSettings] = await Promise.all([
-      client.fetch(HOME_PAGE_QUERY).catch(() => null),
-      client.fetch(SITE_SETTINGS_QUERY).catch(() => null),
+      fetchSanity(HOME_PAGE_QUERY),
+      fetchSanity(SITE_SETTINGS_QUERY),
     ]);
-  } catch { /* fallback to translations.ts */ }
+  } catch { /* fallback */ }
 
   return (
     <SanityContentProvider homePage={homePage} siteSettings={siteSettings} aboutPage={null}>
