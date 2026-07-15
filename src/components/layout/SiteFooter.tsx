@@ -46,7 +46,7 @@ export default function SiteFooter() {
         </div>
         <div className="mt-16 pt-8 border-t border-[var(--color-border)] flex flex-col gap-2 sm:flex-row sm:justify-between text-xs text-[var(--color-text-secondary)]">
           <p>{s("disclaimer", t.footer.disclaimer[lang])}</p>
-          <p className="whitespace-nowrap">&copy; {new Date().getFullYear()} {t.footer.copyright[lang]}</p>
+          <p className="whitespace-nowrap">&copy; {new Date().getFullYear()} {s("brandName", t.shared.brandName[lang])}</p>
         </div>
       </div>
     </footer>
