@@ -75,13 +75,12 @@ export default defineConfig({
               ),
           ]),
     }),
-    // Presentation tool disabled for stability
-    // presentationTool({
-    //   previewUrl: {
-    //     origin: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:5173",
-    //     previewMode: { enable: "/api/draft" },
-    //   },
-    // }),
+    presentationTool({
+      previewUrl: {
+        origin: "http://localhost:5173",
+        previewMode: { enable: "/api/draft" },
+      },
+    }),
   ],
   schema: { types: schemas },
 });
