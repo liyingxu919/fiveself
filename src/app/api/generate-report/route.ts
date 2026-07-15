@@ -67,6 +67,7 @@ export async function POST(request: Request) {
                 birthDate: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
                 content: JSON.stringify(report),
                 generatedAt: new Date().toISOString(),
+                status: "pending_review",
               },
             }],
           }),
@@ -84,53 +85,15 @@ export async function POST(request: Request) {
       saveError = "no_token";
     }
 
-    // Build HTML email with report link
-    const htmlEmail = buildEmailHTML(report, product || "five-elements-blueprint", reportUrl);
-
-    // Send email via Resend
-    let emailSent = false;
-    if (RESEND_API_KEY && RESEND_API_KEY !== "re_placeholder_replace_with_your_key") {
-      try {
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${RESEND_API_KEY}`,
-          },
-          body: JSON.stringify({
-            from: `FiveSelf <${FROM_EMAIL}>`,
-            to: [email],
-            subject: `Your Five Elements Blueprint — ${report.reportId}`,
-            html: htmlEmail,
-          }),
-        });
-
-        if (res.ok) {
-          emailSent = true;
-        } else {
-          const errBody = await res.text();
-          console.error("Resend error:", res.status, errBody);
-        }
-      } catch (emailErr) {
-        console.error("Email send error:", emailErr);
-      }
-    }
-
-    // Fallback logging
-    if (!emailSent) {
-      console.log(`[REPORT] ${report.reportId} for ${name} <${email}>`);
-      console.log(`  Bazi: ${report.baziDisplay.year} ${report.baziDisplay.month} ${report.baziDisplay.day} ${report.baziDisplay.hour}`);
-      console.log(`  Day Master: ${report.dayMaster.gan}(${report.dayMaster.wuxing})`);
-      console.log(`  Profile: ${report.elementAnalysis.profile}`);
-    }
-
+    // Report saved for review - 命理师审核通过后发送邮件
     return NextResponse.json({
       success: true,
       reportId: report.reportId,
-      emailSent,
+      emailSent: false,
       reportSaved,
       reportUrl: reportSaved ? reportUrl : null,
       saveError: saveError || null,
+      status: "pending_review",
       preview: {
         dayMaster: report.dayMaster,
         bazi: report.baziDisplay,
