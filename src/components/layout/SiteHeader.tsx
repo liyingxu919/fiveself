@@ -8,17 +8,17 @@ import { useSanityContent } from "@/i18n/SanityContentContext";
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const { lang, toggleLang, t } = useLang();
+  const { lang, toggleLang } = useLang();
   const { siteSettings } = useSanityContent();
 
-  const brandName = siteSettings?.[`brandName${lang === "en" ? "En" : "Zh"}`] || t.shared.brandName[lang];
+  const brandName = siteSettings?.[`brandName${lang === "en" ? "En" : "Zh"}`] || "";
 
   const navItems = [
-    { label: t.nav.shop[lang], href: "/shop" },
-    { label: t.nav.howItWorks[lang], href: "/#how-it-works" },
-    { label: t.nav.sampleReport[lang], href: "/#sample" },
-    { label: t.nav.about[lang], href: "/about" },
-    { label: t.nav.faqs[lang], href: "/#faq" },
+    { label: lang === "en" ? "Shop" : "精品", href: "/shop" },
+    { label: lang === "en" ? "How It Works" : "购买流程", href: "/#how-it-works" },
+    { label: lang === "en" ? "Sample Report" : "样品预览", href: "/#sample" },
+    { label: lang === "en" ? "About" : "关于我们", href: "/about" },
+    { label: lang === "en" ? "FAQs" : "常见问题", href: "/#faq" },
   ];
 
   return (
