@@ -14,11 +14,11 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
   const [editedFields, setEditedFields] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch(`https://penxmsws.api.sanity.io/v1/data/query/production?query=${encodeURIComponent(`*[_type=="report"&&reportId=="${id}"][0]{content,customerName,customerEmail,status}`)}`, { signal: AbortSignal.timeout(10000) })
+    fetch(`/api/admin/report/${id}`, { signal: AbortSignal.timeout(10000) })
       .then(r => r.json())
       .then(d => {
-        if (d?.result) {
-          const doc = d.result;
+        if (d?.report) {
+          const doc = d.report;
           const content = typeof doc.content === "string" ? JSON.parse(doc.content) : doc.content;
           setReport({ ...doc, content });
         }
