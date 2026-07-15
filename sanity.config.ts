@@ -15,6 +15,7 @@ export default defineConfig({
     structureTool({
       structure: (S) =>
         S.list()
+          .id("root")
           .title("网站内容管理")
           .items([
             // ── 页面内容 ──
