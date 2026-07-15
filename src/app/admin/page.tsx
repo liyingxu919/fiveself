@@ -19,7 +19,7 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch("https://penxmsws.apicdn.sanity.io/v1/data/query/production?query=" + encodeURIComponent('*[_type=="report"]|order(generatedAt desc){reportId,customerName,customerEmail,birthDate,"status": coalesce(status,"pending_review"),generatedAt}'),
+    fetch("https://penxmsws.api.sanity.io/v1/data/query/production?query=" + encodeURIComponent('*[_type=="report"]|order(generatedAt desc){reportId,customerName,customerEmail,birthDate,"status": coalesce(status,"pending_review"),generatedAt}'),
       { signal: AbortSignal.timeout(10000) })
       .then(r => r.json())
       .then(d => { if (d?.result) setReports(d.result); })
