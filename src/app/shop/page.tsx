@@ -1,6 +1,7 @@
 export const revalidate = 60;
 
 import { SanityContentProvider, type SanityContent } from "@/i18n/SanityContentContext";
+import type { ProductData } from "@/components/product/ProductCard";
 import { PRODUCTS_QUERY, SITE_SETTINGS_QUERY } from "@/sanity/lib/queries";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -8,7 +9,7 @@ import ShopContent from "@/components/home/ShopContent";
 
 const SANITY_CDN = "https://penxmsws.apicdn.sanity.io/v1/data/query/production";
 
-async function fetchSanity(query: string): Promise<SanityContent> {
+async function fetchSanity(query: string): Promise<any> {
   try {
     const res = await fetch(`${SANITY_CDN}?query=${encodeURIComponent(query)}`, {
       next: { revalidate: 60 },
@@ -24,8 +25,8 @@ async function fetchSanity(query: string): Promise<SanityContent> {
 
 export default async function ShopPage() {
   const [products, siteSettings] = await Promise.all([
-    fetchSanity(PRODUCTS_QUERY),
-    fetchSanity(SITE_SETTINGS_QUERY),
+    fetchSanity(PRODUCTS_QUERY) as Promise<ProductData[] | null>,
+    fetchSanity(SITE_SETTINGS_QUERY) as Promise<SanityContent>,
   ]);
 
   return (
