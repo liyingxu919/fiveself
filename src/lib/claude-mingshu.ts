@@ -2,7 +2,6 @@
  * 双AI命书引擎: Gemini写命书 + ChatGPT出五行蓝图
  */
 const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
-const OPENAI_KEY = process.env.OPENAI_API_KEY || "";
 
 export interface MingShuInput {
   customerName: string; birthDate: string; birthTime?: string;
@@ -36,16 +35,13 @@ export async function generateMingShu(input: MingShuInput): Promise<{ text?: str
   } catch(e: any) { return { error: e?.message || String(e) }; }
 }
 
-/** ChatGPT 根据命书出五行蓝图 */
-export async function generateBlueprint(mingshu: string, input: MingShuInput): Promise<string | null> {
-  if (!OPENAI_KEY) return null;
+/** Gemini 根据命书出五行蓝图 (替代ChatGPT) */
+export async function generateBlueprint(mingshu: string, input: MingShuInput): Promise<any> {
+  if (!GEMINI_KEY) return null;
   const prompt = `你是一位东方美学视觉设计师。请根据以下命书内容，为命主${input.customerName}设计一份"五行人生蓝图"的视觉方案。
 
-【命书全文】
-${mingshu}
-
-【命主数据】
-八字:${input.bazi} 五行:${input.wuxing} 神煞:${input.shenSha} 紫微:${input.ziwei}
+【命书全文】${mingshu}
+【命主数据】八字:${input.bazi} 五行:${input.wuxing} 神煞:${input.shenSha} 紫微:${input.ziwei}
 
 请设计一份视觉蓝图方案，包含:
 1. 整体配色方案(主色/辅色/点缀色，每个给hex值)
@@ -54,21 +50,24 @@ ${mingshu}
 4. 最幸运的颜色/环境/时机各一个
 5. 一句给命主的寄语(温暖有力，20字以内)
 
-用JSON格式回复:
+用JSON格式回复，只回复JSON不要其他文字:
 {"colors":{"primary":"#xxx","secondary":"#xxx","accent":"#xxx"},"totem":"...","keywords":["","",""],"lucky":{"color":"","place":"","time":""},"message":"..."}`;
 
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST", headers:{"Content-Type":"application/json","Authorization":`Bearer ${OPENAI_KEY}`},
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        model:"gpt-4o-mini", messages:[
-          {role:"system",content:"你是东方美学视觉设计师。只回复JSON，不要其他文字。"},
-          {role:"user",content:prompt}
-        ], temperature:0.9, max_tokens:800,
+        system_instruction:{parts:[{text:"你是东方美学视觉设计师。只回复JSON，不要其他文字。"}]},
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{maxOutputTokens:800,temperature:0.9},
       }),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.choices?.[0]?.message?.content || null;
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return null;
+    // Extract JSON from response
+    const match = text.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : null;
   } catch { return null; }
 }
