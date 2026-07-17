@@ -2,7 +2,8 @@
  * 五行命书 · 专业命理师级内容引擎 v3
  * 产出5000+字专业命书，含藏干/神煞/格局/大运详解/古典引文
  */
-import { type BaziResult, WUXING_NAMES, WUXING_NAMES_EN, WUXING_COLORS, TIAN_GAN, DI_ZHI } from "./bazi";
+import { type BaziResult, WUXING_NAMES, WUXING_NAMES_EN, WUXING_COLORS, TIAN_GAN, DI_ZHI, SHENG_XIAO, SHENG_XIAO_EN } from "./bazi";
+import { calcAllShenSha, calcDayunAccurate } from "./bazi-engine";
 
 export interface ReportContent {
   reportId:string;generatedAt:string;customerName:string;birthDate:string;birthTime?:string;
@@ -157,7 +158,7 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
     +`地支藏干合计：${WUXING_NAMES.map((w,i)=>`${w}${cgCount[i]}重`).join("，")}。`
     +`${cgCount[dw]>0?"日主在地支有根，根基稳固。":b.wuxingCount[dw]>=3?"日主虽不通根但数量足，仍有力量。":"日主在地支无根，根基较弱。"}`;
 
-  const ss=cgAna; const shenSha=calcShenSha(b); const gj=calcGeJu(b,dw);
+  const ss=cgAna; const shenSha=calcAllShenSha(b); const gj=calcGeJu(b,dw);
   const ygz=`${b.yearPillar.ganName}${b.yearPillar.zhiName}`,mgz=`${b.monthPillar.ganName}${b.monthPillar.zhiName}`,dgz=`${b.dayPillar.ganName}${b.dayPillar.zhiName}`,hgz=`${b.hourPillar.ganName}${b.hourPillar.zhiName}`;
 
   const paiPan=`命主${nm}，八字四柱：${ygz}年 ${mgz}月 ${dgz}日 ${hgz}时。`
@@ -172,7 +173,7 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
     +`${dw===4?`壬癸水柔，智慧灵动，${lv==="偏旺"?"水势浩荡，思维敏捷，适应力极强":"水弱需金生，深藏待用"}.`:""}`;
   const ysExpl=`${lv==="偏旺"?(ws>=wk?`日主强旺，食伤(${WUXING_NAMES[(dw+1)%5]})有力，取食伤泄秀为用，喜${ysN}${lv}:`:`日主强旺，官杀(${WUXING_NAMES[(dw+2)%5]})有制，取财星生官或用食伤制杀，喜${ysN}:`):lv==="偏弱"?(sw>=kw?`日主偏弱，印星帮扶有力，取${ysN}为用神`:`日主偏弱，官杀较旺，取印星化杀生身，喜${ysN}`):`日主中和，取${ysN}为用，平衡全局`}。`
     +`用神${ysN}，喜神${WUXING_NAMES[(ysI+4)%5]}，忌神${WUXING_NAMES[(ysI+2)%5]}。${ysN}能${ysI===(dw+4)%5?"生扶日主":"制衡全局"}。`;
-  const dyAna=generateDayun(b).map(d=>`${d.age}起${d.ganzhi}运，纳音${d.nayin}，${d.analysis}`).join("\n");
+  const dyAna=calcDayunAccurate(b, "male", bd.split("-")[1] ? parseInt(bd.split("-")[1]) : 6, bd.split("-")[2] ? parseInt(bd.split("-")[2]) : 15).map(d => ({age:`${d.age}岁`,ganzhi:d.ganzhi,nayin:d.nayin,wuxing:"土",desc:"",analysis:d.analysis})).map(d=>`${d.age}起${d.ganzhi}运，纳音${d.nayin}，${d.analysis}`).join("\n");
 
   const per=`日主${dmN}，${dmWxN}性。${dw===0?"木主仁，正直有担当，积极向上。":dw===1?"火主礼，热情有活力，富感染力。":dw===2?"土主信，厚道稳重，值得信赖。":dw===3?"金主义，刚毅果敢，是非分明。":"水主智，聪慧灵活，善于变通。"}`
     +`${shenSha.includes("天乙贵人")?"命带天乙贵人，一生多得贵人相助，逢凶化吉。":""}`
@@ -251,7 +252,7 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
     dominantElement:domI,secondaryElement:secI,wuxingDistribution:wd,
     elementAnalysis:{profile:`日主${dmN}(${dmWxN})，${domN}${st[0].c}重${secN}${st[1].c}辅，${missing.length>0?"缺"+missing.map(m=>m.name).join("、"):"五行俱全"}.`,dominant:{name:domN,nameEn:WUXING_NAMES_EN[domI],desc:`${domN}${st[0].c}重，${st[0].c>=4?"气势旺盛":st[0].c>=2?"力量适中":"偏弱"}.`,descEn:`${WUXING_NAMES_EN[domI]} count ${st[0].c}.`},secondary:{name:secN,nameEn:WUXING_NAMES_EN[secI],desc:`${secN}辅佐${domN}.`,descEn:`${WUXING_NAMES_EN[secI]} supports ${WUXING_NAMES_EN[domI]}.`},missing},
     colorPalette:cp[dw],shengXiao:{name:b.shengXiao,nameEn:b.shengXiaoEn},
-    dayun:generateDayun(b),
+    dayun:calcDayunAccurate(b, "male", bd.split("-")[1] ? parseInt(bd.split("-")[1]) : 6, bd.split("-")[2] ? parseInt(bd.split("-")[2]) : 15).map(d => ({age:`${d.age}岁`,ganzhi:d.ganzhi,nayin:d.nayin,wuxing:"土",desc:"",analysis:d.analysis})),
     disuitianshu:{yongshen:ysN,yongshenEn:ysE,analysis:ysExpl,analysisEn:`Day Master ${lv}. Yong Shen: ${ysE}.`,grade:lv==="偏旺"?"旺":lv==="偏弱"?"弱":"中"},
     mangpai:{pastTen:`${WUXING_NAMES[(dw+1)%5]}运奠基期`,pastTenEn:`${WUXING_NAMES_EN[(dw+1)%5]} foundation`,currentTen:`${ysN}运发展期`,currentTenEn:`${ysE} growth`,flow:`日主${dmN}(${dmWxN})，${domN}${st[0].c}重做功，${ysN}通关。`},
     lucky:{colors:cp[dw].map(c=>c.name),environments:[dw===0?"森林公园":dw===1?"阳光开放空间":dw===2?"山丘田野":dw===3?"现代建筑图书馆":"海边湖畔",dw===0?"茶园书房":dw===1?"社交场所":dw===2?"家居空间":dw===3?"画廊博物馆":"浴室泳池","柔和通风空间","自然元素和艺术环境","安静专注区域","和谐人际场所"],timing:[["春","夏","季末","秋","冬"][dw],"卯时5-7时","新月满月前后",`逢${ysN}之岁`,`与日柱${dgz}三合六合年`]},
