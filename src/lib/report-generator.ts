@@ -281,7 +281,7 @@ export function generateReportContent(
     spaceTips: spaceTipsMap[dmWuxing] || spaceTipsMap[2],
 
     // ── 大运 ──
-    dayun: generateDayun(bazi, input),
+    dayun: generateDayun(bazi),
 
     // ── 滴天髓 ──
     disuitianshu: {
@@ -341,20 +341,18 @@ const DI_ZHI = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌
 const WX = ["木","火","土","金","水"];
 const WUXING_ZHI: Record<string, number> = { "寅":0,"卯":0,"巳":1,"午":1,"辰":2,"戌":2,"丑":2,"未":2,"申":3,"酉":3,"亥":4,"子":4 };
 
-function generateDayun(bazi: BaziResult, input: any): Array<{ age: string; ganzhi: string; nayin: string; wuxing: string; desc: string }> {
+function generateDayun(bazi: BaziResult): Array<{ age: string; ganzhi: string; nayin: string; wuxing: string; desc: string }> {
   const result: Array<{ age: string; ganzhi: string; nayin: string; wuxing: string; desc: string }> = [];
   // Calculate starting age based on birth year's heavenly stem (顺逆)
   const yearGan = bazi.yearPillar.gan;
   const yearZhi = bazi.yearPillar.zhi;
 
-  // Determine if 顺行 (forward) or 逆行 (reverse)
-  // 阳男阴女顺行，阴男阳女逆行
+  // 阳干顺行，阴干预设为顺（简化处理）
   const isYangGan = yearGan % 2 === 0; // 甲丙戊庚壬 = yang
-  const gender = input.gender || "male";
-  const forward = (isYangGan && gender === "male") || (!isYangGan && gender === "female");
+  const forward = isYangGan; // 简化：阳干顺行
 
-  // Starting age approximation: 3-8 years depending on birth month
-  const startAge = forward ? (12 - input.month + 3) % 10 + 3 : (input.month + 8) % 10 + 3;
+  // Starting age: 3 years default
+  const startAge = 3;
 
   // Generate 8 cycles
   const monthZhi = bazi.monthPillar.zhi;
