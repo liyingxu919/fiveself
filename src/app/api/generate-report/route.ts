@@ -68,9 +68,10 @@ export async function POST(request: Request) {
     };
     let aiMingShu = "";
     let aiBlueprint: any = null;
-    try { aiMingShu = await generateMingShu(mingShuInput) || ""; } catch {}
+    let aiDebug = `GEMINI_KEY=${process.env.GEMINI_API_KEY ? 'set('+process.env.GEMINI_API_KEY.slice(0,8)+'...)' : 'NOT SET'}`;
+    try { const ms = await generateMingShu(mingShuInput); if (ms) { aiMingShu = ms; aiDebug += ' | Gemini OK'; } else { aiDebug += ' | Gemini returned null'; } } catch(e: any) { aiDebug += ' | ERROR:'+(e?.message||e); }
     try { if (aiMingShu) { const bp = await generateBlueprint(aiMingShu, mingShuInput); if (bp) aiBlueprint = JSON.parse(bp); } } catch {}
-    const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint };
+    const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint, aiDebug };
 
     // Save report to Sanity for online access
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;
