@@ -209,11 +209,23 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
   else if(ysN==="水") f26+=`午火冲水，流年略有动荡，需谨慎理财、注意人际关系。夏季火旺时尤其要稳字当头。`;
   else f26+=`丙午年火旺，${dw===4&&ysI===2?"火生土，通关有情，机遇增多。":"流年火势偏旺，注意调节，顺势而为。"}`;
   if(dw===4&&ysI===2) f26+=` 注意午火偏旺克制日主，春夏交际需特别注意身体和决策。`;
-  const f26En=`2026 Bing Wu (Fire Horse) year. ${ysE==="Fire"?"Favorable — seize opportunities.":ysE==="Water"?"Challenging — caution advised.":"Adapt and flow with the Fire energy."}`;
+  let f26EnText = "Adapt and flow with the Fire energy.";
+  if (ysE === "Fire") f26EnText = "Favorable — seize opportunities.";
+  else if (ysE === "Water") f26EnText = "Challenging — caution advised.";
+  const f26En = `2026 Bing Wu (Fire Horse) year. ${f26EnText}`;
 
-  const adv=`一、${lv==="偏旺"?"宜泄耗，用${ysN}平衡自身"+"。${dw===0?"多做创意性工作":dw===1?"多表达和社交":dw===2?"多运动消耗":dw===3?"多分析和规划":dw===4?"多学习交流"}":lv==="偏弱"?"宜生扶，补${ysN}增强自身":""}.`
-    +`\n二、方位大利${ysN==="木"?"东方":ysN==="火"?"南方":ysN==="土"?"中部":ysN==="金"?"西方":"北方"},忌${WUXING_NAMES[(ysI+2)%5]}方.`
-    +`\n三、${shenSha.includes("驿马")?"驿马入命，宜外出发展，不宜久居一地.":""}${shenSha.includes("华盖")?"华盖照命，宜修身养性，有玄学天赋.":""}`;
+  let advAct = "";
+  if (lv === "偏旺") {
+    const acts: Record<number,string> = {0:"多做创意性工作",1:"多表达和社交",2:"多运动消耗",3:"多分析和规划",4:"多学习交流"};
+    advAct = `宜泄耗，用${ysN}平衡自身。${acts[dw]||""}`;
+  } else if (lv === "偏弱") {
+    advAct = `宜生扶，补${ysN}增强自身.`;
+  }
+  const dirs: Record<string,string> = {"木":"东方","火":"南方","土":"中部","金":"西方","水":"北方"};
+  let adv3 = "";
+  if (shenSha.includes("驿马")) adv3 += "驿马入命，宜外出发展，不宜久居一地.";
+  if (shenSha.includes("华盖")) adv3 += "华盖照命，宜修身养性，有玄学天赋.";
+  const adv = `一、${advAct}\n二、方位大利${dirs[ysN]||"中"},忌${WUXING_NAMES[(ysI+2)%5]}方.\n三、${adv3}`;
   const advEn=`1. ${lv==="strong"?"Balance with "+ysE:"Strengthen with "+ysE}. 2. Favorable direction: ${ysE==="Wood"?"East":ysE==="Fire"?"South":ysE==="Earth"?"Center":ysE==="Metal"?"West":"North"}.`;
 
   const cp:Record<number,Array<{hex:string;name:string;use:string}>>={
