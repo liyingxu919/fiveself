@@ -28,10 +28,12 @@ export async function generateMingShu(input: MingShuInput): Promise<string | nul
         generationConfig:{maxOutputTokens:2000,temperature:0.8},
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) { const errTxt = await res.text(); console.error("Gemini HTTP", res.status, errTxt.slice(0,200)); return null; }
     const data = await res.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch { return null; }
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) console.error("Gemini empty response:", JSON.stringify(data).slice(0,300));
+    return text || null;
+  } catch(e: any) { console.error("Gemini exception:", e?.message || e); return null; }
 }
 
 /** ChatGPT 根据命书出五行蓝图 */
