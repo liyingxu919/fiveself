@@ -88,6 +88,7 @@ export async function POST(request: Request) {
     // Report saved for review - 命理师审核通过后发送邮件
     return NextResponse.json({
       success: true,
+      version: "v3.0-藏干神煞格局",
       reportId: report.reportId,
       emailSent: false,
       reportSaved,
