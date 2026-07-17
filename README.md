@@ -8,3 +8,4 @@ Now you can do the following things:
 - [Join the Sanity community](https://www.sanity.io/community/join?utm_source=readme)
 - [Extend and build plugins](https://www.sanity.io/docs/content-studio/extending?utm_source=readme)
 
+

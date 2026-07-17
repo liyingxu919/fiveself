@@ -19,7 +19,7 @@ export async function generateMingShu(input: MingShuInput): Promise<{ text?: str
 要求:口语化、具体到干支、有断有解、不套模板。中文。`;
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         system_instruction:{parts:[{text:"你是从业三十年的资深命理师，精通滴天髓、穷通宝鉴、盲派、紫微斗数。命书风格口语化、具体到八字干支、有断有解。绝不用模板腔。"}]},
@@ -54,7 +54,7 @@ export async function generateBlueprint(mingshu: string, input: MingShuInput): P
 {"colors":{"primary":"#xxx","secondary":"#xxx","accent":"#xxx"},"totem":"...","keywords":["","",""],"lucky":{"color":"","place":"","time":""},"message":"..."}`;
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         system_instruction:{parts:[{text:"你是东方美学视觉设计师。只回复JSON，不要其他文字。"}]},
