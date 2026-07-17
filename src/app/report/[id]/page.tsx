@@ -93,9 +93,27 @@ function Section2({d,ed,dmC}:any) {
   const wxData = WX.map(w=>ed.find((e:any)=>e.name===w)||{name:w,nameEn:WXE[WX.indexOf(w)],count:0,percentage:0});
   const maxVal = Math.max(...wxData.map((d:any)=>d.count),5)+1;
 
-  const radarOption = {
-    radar:{center:["50%","55%"],radius:"65%",indicator:WX.map((w:any)=>({name:w,max:maxVal})),axisName:{color:P.muted,fontSize:13},splitArea:{areaStyle:{color:["#fdfbf7","#f7f3ed","#f1ece4","#ebe5db","#e5ded4"]}},splitLine:{lineStyle:{color:P.border}},axisLine:{lineStyle:{color:"#d4cbbf"}}},
-    series:[{type:"radar",data:[{value:WX.map((w:any)=>wxData.find((d2:any)=>d2.name===w)?.count||0),name:"Five Elements",areaStyle:{color:dmC,opacity:0.12},lineStyle:{color:dmC,width:2.5},itemStyle:{color:dmC},symbol:"circle",symbolSize:8}}]},
+  const radarOpt = {
+    radar: {
+      center: ["50%", "55%"], radius: "65%",
+      indicator: WX.map((w: any) => ({ name: w, max: maxVal })),
+      axisName: { color: P.muted, fontSize: 13 },
+      splitArea: { areaStyle: { color: ["#fdfbf7", "#f7f3ed", "#f1ece4", "#ebe5db", "#e5ded4"] } },
+      splitLine: { lineStyle: { color: P.border } },
+      axisLine: { lineStyle: { color: "#d4cbbf" } },
+    },
+    series: [{
+      type: "radar",
+      data: [{
+        value: WX.map((w: any) => wxData.find((d2: any) => d2.name === w)?.count ?? 0),
+        name: "Five Elements",
+        areaStyle: { color: dmC, opacity: 0.12 },
+        lineStyle: { color: dmC, width: 2.5 },
+        itemStyle: { color: dmC },
+        symbol: "circle",
+        symbolSize: 8,
+      }],
+    }],
   };
 
   const barOption = {
@@ -105,7 +123,7 @@ function Section2({d,ed,dmC}:any) {
     series:[{type:"bar",data:wxData.map((d:any)=>({value:d.count,itemStyle:{color:WXC[WX.indexOf(d.name)]||P.gold,borderRadius:[6,6,0,0]}})),barWidth:"50%"}],
   };
 
-  return <Sec num="Ⅱ" title="五行分析" en="Five Elements Analysis · ECharts"><div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:16,marginBottom:24}}><div style={{background:P.card,border:`1px solid ${P.border}`,padding:8}}><ReactECharts option={radarOption} style={{height:380}}/><p style={{textAlign:"center",fontSize:11,color:P.muted,marginTop:4}}>Five Elements Radar · 五行雷达图</p></div><div style={{background:P.card,border:`1px solid ${P.border}`,padding:8}}><ReactECharts option={barOption} style={{height:380}}/><p style={{textAlign:"center",fontSize:11,color:P.muted,marginTop:4}}>Element Distribution · 五行分布</p></div></div>
+  return <Sec num="Ⅱ" title="五行分析" en="Five Elements Analysis · ECharts"><div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:16,marginBottom:24}}><div style={{background:P.card,border:`1px solid ${P.border}`,padding:8}}><ReactECharts option={radarOpt} style={{height:380}}/><p style={{textAlign:"center",fontSize:11,color:P.muted,marginTop:4}}>Five Elements Radar · 五行雷达图</p></div><div style={{background:P.card,border:`1px solid ${P.border}`,padding:8}}><ReactECharts option={barOption} style={{height:380}}/><p style={{textAlign:"center",fontSize:11,color:P.muted,marginTop:4}}>Element Distribution · 五行分布</p></div></div>
     {/* Pentagon SVG */}
     <Pentagon wxData={wxData} dmC={dmC} />
   </Sec>;
