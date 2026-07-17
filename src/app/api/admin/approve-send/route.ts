@@ -67,25 +67,65 @@ export async function POST(request: Request) {
 }
 
 function buildApprovedEmail(name: string, dm: any, reportUrl: string, content: any): string {
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="font-family:Georgia,serif;background:#F9F6F0;padding:40px 20px;">
-<div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #E3DBCC;padding:40px;">
-  <div style="text-align:center;margin-bottom:32px;">
-    <h1 style="font-weight:400;font-size:28px;color:#2B2318;margin:0 0 8px;">Your Five Elements Blueprint</h1>
-    <p style="color:#8A8178;font-size:13px;margin:0;">A Personal Visual Publication · ${content?.reportId || ""}</p>
-    <p style="color:#8A8178;font-size:12px;margin:4px 0 0;">Prepared for ${name || "you"}</p>
+  const ed = content?.wuxingDistribution || [];
+  const an = content?.elementAnalysis;
+  const bz = content?.baziDisplay;
+  const cp = content?.colorPalette || [];
+  const dmC = dm?.color || "#C4A882";
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:Georgia,'Noto Serif SC',serif;background:#FBF7F2;padding:40px 20px;">
+<div style="max-width:600px;margin:0 auto;background:#FFFCF9;border:1px solid #E8E0D5;padding:40px;">
+
+  <div style="text-align:center;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid #E8E0D5;">
+    <p style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:#9B8E84;margin:0 0 20px;">Five Elements Blueprint</p>
+    <h1 style="font-weight:300;font-size:32px;color:#3D322C;margin:0 0 4px;">五行个人蓝图</h1>
+    <div style="display:inline-block;width:80px;height:80px;border-radius:50%;background:${dmC};margin:20px auto;line-height:80px;font-size:32px;font-weight:300;color:#fff;">${dm?.gan||""}</div>
+    <p style="font-size:18px;color:${dmC};margin:0 0 4px;">${dm?.ganEn||""} · ${dm?.wuxingEn||""} · ${dm?.wuxing||""}</p>
+    <p style="color:#9B8E84;font-size:13px;margin:8px 0 0;">Prepared for <strong style="color:#3D322C">${name||"you"}</strong> · ${content?.birthDate||""}</p>
   </div>
-  ${dm ? `<div style="background:#F3EFE7;padding:24px;margin-bottom:24px;text-align:center;">
-    <p style="color:#8A8178;font-size:11px;text-transform:uppercase;letter-spacing:0.15em;margin:0 0 4px;">Your Day Master</p>
-    <p style="font-size:36px;color:${dm.color};margin:0;font-weight:400;">${dm.gan} <span style="font-size:16px;color:#8A8178;">(${dm.wuxing})</span></p>
+
+  ${bz ? `
+  <h2 style="font-size:16px;font-weight:400;color:#3D322C;margin:24px 0 12px;">完整生辰八字 · Birth Chart</h2>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px;">
+    ${[["年Year",bz.year,bz.yearEn],["月Month",bz.month,bz.monthEn],["日Day",bz.day,bz.dayEn],["时Hour",bz.hour,bz.hourEn]].map(([l,zh,en])=>`
+      <div style="background:#FBF7F2;border:1px solid #E8E0D5;padding:12px 8px;text-align:center;">
+        <p style="font-size:8px;color:#9B8E84;text-transform:uppercase;margin:0 0 6px;">${l}</p>
+        <p style="font-size:18px;margin:0 0 2px;font-weight:300;">${zh}</p>
+        <p style="font-size:10px;color:#9B8E84;margin:0;">${en}</p>
+      </div>
+    `).join("")}
   </div>` : ""}
+
+  ${ed.length > 0 ? `
+  <h2 style="font-size:16px;font-weight:400;color:#3D322C;margin:24px 0 12px;">五行分布 · Element Distribution</h2>
+  ${ed.map((w:any,i:number)=>`
+    <div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#3D322C;margin-bottom:3px;"><span>${w.nameEn} ${w.name}</span><span style="color:#9B8E84">${w.count} (${w.percentage}%)</span></div>
+      <div style="height:8px;background:#E8E0D5;border-radius:4px;"><div style="height:8px;width:${Math.max(3,w.barWidth)}%;background:${["#8B9D83","#C2856A","#B8A080","#9B8E84","#7B95A8"][i]||dmC};border-radius:4px;"></div></div>
+    </div>
+  `).join("")}` : ""}
+
+  ${cp.length > 0 ? `
+  <h2 style="font-size:16px;font-weight:400;color:#3D322C;margin:24px 0 12px;">幸运颜色 · Lucky Colors</h2>
+  <div style="display:flex;gap:8px;margin-bottom:24px;">
+    ${cp.map((c:any)=>`<div style="flex:1;text-align:center;"><div style="height:40px;background:${c.hex};border-radius:20px;margin-bottom:4px;"></div><p style="font-size:8px;color:#9B8E84;margin:0;">${c.name}</p></div>`).join("")}
+  </div>` : ""}
+
+  ${an?.dominant ? `
+  <div style="background:#FBF7F2;padding:20px;border:1px solid #E8E0D5;margin:20px 0;">
+    <p style="font-size:11px;color:#9B8E84;margin:0 0 6px;">用神 · Yong Shen</p>
+    <p style="font-size:22px;color:${dmC};margin:0 0 6px;font-weight:300;">${an.dominant.nameEn} ${an.dominant.name}</p>
+    <p style="font-size:12px;line-height:1.7;color:#3D322C;margin:0;">${an.dominant.descEn}</p>
+  </div>` : ""}
+
   <div style="text-align:center;margin:32px 0;">
-    <a href="${reportUrl}" style="display:inline-block;background:#26382c;color:#fff;padding:14px 32px;text-decoration:none;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;">View Your Full Report →</a>
-    <p style="color:#8A8178;font-size:11px;margin:8px 0 0;">Open and print to PDF for your personal copy</p>
+    <a href="${reportUrl}" style="display:inline-block;background:#C4A882;color:#fff;padding:14px 32px;text-decoration:none;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;border-radius:2px;">View Full Report →</a>
+    <p style="color:#9B8E84;font-size:10px;margin:8px 0 0;">Open your complete blueprint · Download as PDF</p>
   </div>
-  <div style="text-align:center;padding-top:24px;border-top:1px solid #E3DBCC;margin-top:32px;">
-    <p style="font-size:11px;color:#8A8178;margin:0;">FiveSelf Studio · Personal. Beautiful. Elemental.</p>
+
+  <div style="text-align:center;padding-top:20px;border-top:1px solid #E8E0D5;">
+    <p style="font-size:11px;color:#9B8E84;margin:0;">FiveSelf Studio · Personal. Beautiful. Elemental.</p>
   </div>
 </div></body></html>`;
 }
