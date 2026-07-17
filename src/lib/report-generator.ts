@@ -192,7 +192,7 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
 
   const wea=`${wk>2?`财星${wk}重，${lv==="偏旺"?"身强能胜财，财运佳，适合主动求财":"身弱财旺，需注意理财，避免过度投机"}。`:wk===0?`财星不显，不宜冒险投资，宜稳健理财。`:lv==="偏旺"?`身强有财，财运稳健。`:`财星适中，足以养命。`}`
     +`${shenSha.includes("禄神")?"命带禄神，一生衣食无忧，有稳定收入来源。":""}`;
-  const weaEn=`Wealth star ${wk>2?"strong":wk===0?"absent":"moderate"}. ${lv==="strong"?"Capable of managing wealth.":"Caution with investments."}`;
+  const weaEn=`Wealth star ${wk>2?"strong":wk===0?"absent":"moderate"}. ${lv==="偏旺"?"Capable of managing wealth.":"Caution with investments."}`;
 
   const rel=`${dw===0?"木性仁慈，待人真诚，但有时过于耿直。":dw===1?"火性热烈，感情丰富主动，需注意情绪波动。":dw===2?"土性敦厚，重视家庭和稳定，不擅长浪漫但有长久的守护力。":dw===3?"金性刚直，对伴侣忠诚可靠，有时过于理性缺少柔情。":"水性柔善变，感情细腻，需注意安全感不足。"}`
     +`${shenSha.includes("桃花")?"桃花入命，异性缘分较好，需分辨正缘偏缘。":""}`
@@ -226,7 +226,7 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
   if (shenSha.includes("驿马")) adv3 += "驿马入命，宜外出发展，不宜久居一地.";
   if (shenSha.includes("华盖")) adv3 += "华盖照命，宜修身养性，有玄学天赋.";
   const adv = `一、${advAct}\n二、方位大利${dirs[ysN]||"中"},忌${WUXING_NAMES[(ysI+2)%5]}方.\n三、${adv3}`;
-  const advEn=`1. ${lv==="strong"?"Balance with "+ysE:"Strengthen with "+ysE}. 2. Favorable direction: ${ysE==="Wood"?"East":ysE==="Fire"?"South":ysE==="Earth"?"Center":ysE==="Metal"?"West":"North"}.`;
+  const advEn=`1. ${lv==="偏旺"?"Balance with "+ysE:"Strengthen with "+ysE}. 2. Favorable direction: ${ysE==="Wood"?"East":ysE==="Fire"?"South":ysE==="Earth"?"Center":ysE==="Metal"?"West":"North"}.`;
 
   const cp:Record<number,Array<{hex:string;name:string;use:string}>>={
     0:[{hex:"#7A9A7B",name:"苍绿",use:"主色"},{hex:"#A8C8A0",name:"嫩绿",use:"辅色"},{hex:"#5B4030",name:"深棕",use:"配色"},{hex:"#F5EFE6",name:"暖白",use:"底色"},{hex:"#C0806E",name:"陶土红",use:"点缀"}],
