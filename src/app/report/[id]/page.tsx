@@ -2,300 +2,278 @@
 
 import { useEffect, useState, use } from "react";
 
-interface BaziData {
-  reportId: string; customerName: string; birthDate: string; birthTime?: string;
-  dayMaster: { gan: string; ganEn: string; wuxing: string; wuxingEn: string; color: string };
-  baziDisplay: { year: string; month: string; day: string; hour: string; yearEn: string; monthEn: string; dayEn: string; hourEn: string };
-  wuxingDistribution: Array<{ name: string; nameEn: string; count: number; percentage: number; color: string; barWidth: number }>;
-  elementAnalysis: { profile: string; dominant: any; secondary: any; missing: any[] };
-  colorPalette: Array<{ hex: string; name: string; use: string }>;
-  lifestyleTips: Array<{ title: string; titleEn: string; tip: string; tipEn: string }>;
-  spaceTips: Array<{ area: string; areaEn: string; color: string; advice: string; adviceEn: string }>;
-  totemDescription: { cn: string; en: string; elements: string[] };
-  shengXiao?: { name: string; nameEn: string };
-  dayun?: Array<{ age: string; ganzhi: string; nayin: string; wuxing: string; desc: string }>;
-  disuitianshu?: { yongshen: string; yongshenEn: string; analysis: string; analysisEn: string; grade: string };
-  mangpai?: { pastTen: string; pastTenEn: string; currentTen: string; currentTenEn: string; flow: string };
-  lucky?: { colors: string[]; environments: string[]; timing: string[] };
+const WARM_PALETTE = {
+  bg: "#FBF7F2", card: "#FFFCF9", accent: "#D4A88C",
+  text: "#3D322C", muted: "#9B8E84", border: "#E8E0D5",
+  gold: "#C4A882", rose: "#C2856A", sage: "#8B9D83",
+  sky: "#8A9BAD", earth: "#B8A080", water: "#7B95A8",
+};
+
+const WARME: Record<number, string> = { 0: "#8B9D83", 1: "#C2856A", 2: "#B8A080", 3: "#9B8E84", 4: "#7B95A8" };
+const WUXING_NAMES = ["木","火","土","金","水"];
+const WUXING_EN = ["Wood","Fire","Earth","Metal","Water"];
+
+function useReportData(id: string) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetch(`/api/admin/report/${id}`, { signal: AbortSignal.timeout(12000) })
+      .then(r => r.json()).then(d => {
+        if (d?.report?.content) setData(typeof d.report.content === "string" ? JSON.parse(d.report.content) : d.report.content);
+      }).catch(()=>{}).finally(()=>setLoading(false));
+  }, [id]);
+  return { data, loading };
 }
 
 export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [report, setReport] = useState<BaziData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`/api/admin/report/${id}`, { signal: AbortSignal.timeout(12000) })
-      .then(r => r.json())
-      .then(d => {
-        if (d?.report?.content) {
-          const c = typeof d.report.content === "string" ? JSON.parse(d.report.content) : d.report.content;
-          setReport(c);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading) return <Centered><p>Loading your Blueprint...</p></Centered>;
-  if (!report) return <Centered><h1>Report not found</h1><a href="/order">Generate a new report →</a></Centered>;
-
-  const dm = report.dayMaster; const ed = report.wuxingDistribution; const an = report.elementAnalysis;
+  const { data, loading } = useReportData(id);
+  if (loading) return <Wait>Preparing your Blueprint...</Wait>;
+  if (!data) return <Wait>Report not found<p style={{fontSize:13,marginTop:8}}><a href="/order" style={{color:WARM_PALETTE.rose}}>Generate a new one →</a></p></Wait>;
+  if (loading) return <Centered>Loading...</Centered>;
+  if (!data) return <Centered><h1>Report not found</h1><a href="/order">Generate new →</a></Centered>;
+  const r = data, dm = r.dayMaster, ed = r.wuxingDistribution, an = r.elementAnalysis;
+  const dmColor = WARME[dm?.wuxing === "木"?0:dm?.wuxing==="火"?1:dm?.wuxing==="土"?2:dm?.wuxing==="金"?3:4] || WARM_PALETTE.accent;
 
   return (
-    <div style={{ fontFamily: "Georgia,'Noto Serif SC',serif", background: "#F9F6F0", minHeight: "100vh", color: "#2B2318" }}>
-      <style>{`@media print{body{background:#fff!important;}.nop{display:none!important;}}@page{size:A4;margin:12mm;}`}</style>
+    <div style={{ fontFamily: "Georgia,'Noto Serif SC',serif", background: WARM_PALETTE.bg, minHeight: "100vh", color: WARM_PALETTE.text }}>
+      <style>{`@media print{body{background:#fff!important;}.nop{display:none!important;}}@page{size:A4;margin:10mm;}`}</style>
+      <PrintBtn />
+      <Cover data={r} dmColor={dmColor} />
+      <Section1 data={r} dmColor={dmColor} />
+      <Section2 data={r} ed={ed} an={an} dmColor={dmColor} />
+      <Section3 ed={ed} dmColor={dmColor} />
+      <Section4 data={r} dmColor={dmColor} />
+      <Section5 data={r} dmColor={dmColor} />
+      <Section6 data={r} dmColor={dmColor} />
+      <Footer data={r} />
+    </div>
+  );
+}
 
-      {/* PRINT BUTTON */}
-      <div className="nop" style={{ position: "fixed", top: 20, right: 20, zIndex: 100 }}>
-        <button onClick={() => window.print()} style={{ background: "#26382c", color: "#fff", border: "none", padding: "12px 24px", fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>Download PDF / 下载 PDF</button>
+function PrintBtn() {
+  return <div className="nop" style={{ position:"fixed",top:20,right:20,zIndex:100 }}>
+    <button onClick={()=>window.print()} style={{ background:WARM_PALETTE.accent,color:"#fff",border:"none",padding:"12px 24px",fontSize:"11px",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",borderRadius:2 }}>Download PDF</button>
+  </div>;
+}
+
+function Cover({ data, dmColor }: any) {
+  return (
+    <div style={{ textAlign:"center",padding:"120px 20px 100px",background:`linear-gradient(180deg,${WARM_PALETTE.card} 0%,${WARM_PALETTE.bg} 100%)`,borderBottom:`1px solid ${WARM_PALETTE.border}` }}>
+      <p style={{ fontSize:11,letterSpacing:"0.25em",textTransform:"uppercase",color:WARM_PALETTE.muted,margin:"0 0 28px" }}>Five Elements Blueprint</p>
+      <h1 style={{ fontSize:"clamp(38px,7vw,72px)",fontWeight:300,margin:"0 0 16px",lineHeight:1.1,letterSpacing:"-0.02em" }}>五行个人蓝图</h1>
+      <div style={{ width:112,height:112,borderRadius:"50%",background:dmColor,margin:"32px auto",display:"flex",alignItems:"center",justifyContent:"center",fontSize:44,fontWeight:300,color:"#fff",boxShadow:`0 8px 32px ${dmColor}30` }}>
+        {data.dayMaster.gan}
       </div>
+      <p style={{ fontSize:22,color:dmColor,margin:"0 0 4px" }}>{data.dayMaster.ganEn} · {data.dayMaster.wuxingEn} · {data.dayMaster.wuxing}</p>
+      <p style={{ color:WARM_PALETTE.muted,fontSize:14,margin:"12px 0 0" }}>Prepared for <strong style={{color:WARM_PALETTE.text}}>{data.customerName}</strong> · {data.birthDate}</p>
+      <p style={{ color:WARM_PALETTE.gold,fontSize:10,marginTop:8,letterSpacing:"0.05em" }}>{data.reportId}</p>
+    </div>
+  );
+}
 
-      {/* ═══════ COVER ═══════ */}
-      <Cover report={report} />
+function Section1({ data, dmColor }: any) {
+  return <Sec title="完整生辰八字" en="Complete Birth Chart" num="I">
+    <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12 }}>
+      {[
+        ["年柱 Year", data.baziDisplay.year, data.baziDisplay.yearEn, data.shengXiao ? `${data.shengXiao.nameEn}${data.shengXiao.name}` : ""],
+        ["月柱 Month", data.baziDisplay.month, data.baziDisplay.monthEn, "月令提纲"],
+        ["日柱 Day", data.baziDisplay.day, data.baziDisplay.dayEn, `日主 ${data.dayMaster.gan}(${data.dayMaster.wuxing})`],
+        ["时柱 Hour", data.baziDisplay.hour, data.baziDisplay.hourEn, "早/晚子时细分"],
+      ].map(([l,zh,en,note]:any,i)=>(
+        <div key={i} style={{ background:WARM_PALETTE.card,border:`1px solid ${WARM_PALETTE.border}`,padding:"24px 16px",textAlign:"center" }}>
+          <p style={{ fontSize:9,textTransform:"uppercase",letterSpacing:"0.15em",color:WARM_PALETTE.muted,margin:"0 0 10px" }}>{l}</p>
+          <p style={{ fontSize:24,margin:"0 0 4px",fontWeight:300 }}>{zh}</p>
+          <p style={{ fontSize:12,color:WARM_PALETTE.muted,margin:0 }}>{en}</p>
+          <p style={{ fontSize:10,color:dmColor,margin:"4px 0 0" }}>{note}</p>
+        </div>
+      ))}
+    </div>
+    <p style={{ textAlign:"center",marginTop:14,fontSize:10,color:WARM_PALETTE.muted }}>
+      排盘采用早子时/晚子时细分法 · 子时(23:00-01:00)区分两段分别定日柱时柱
+    </p>
+  </Sec>;
+}
 
-      {/* ═══════ SECTION 1: 完整生辰八字 ═══════ */}
-      <Section title="完整生辰八字 · Complete Birth Chart" icon="Ⅰ">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-          {[
-            { label: "年柱 Year", zh: report.baziDisplay.year, en: report.baziDisplay.yearEn, note: report.shengXiao ? `${report.shengXiao.nameEn}${report.shengXiao.name}` : "" },
-            { label: "月柱 Month", zh: report.baziDisplay.month, en: report.baziDisplay.monthEn, note: "月令提纲" },
-            { label: "日柱 Day", zh: report.baziDisplay.day, en: report.baziDisplay.dayEn, note: `日主 ${dm.gan}(${dm.wuxing})` },
-            { label: "时柱 Hour", zh: report.baziDisplay.hour, en: report.baziDisplay.hourEn, note: "子时细分" },
-          ].map((p, i) => (
-            <div key={i} style={{ background: "#FBF7F0", border: "1px solid #E3DBCC", padding: 24, textAlign: "center" }}>
-              <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8A8178", margin: "0 0 8px" }}>{p.label}</p>
-              <p style={{ fontSize: 26, margin: "0 0 4px", fontWeight: 300 }}>{p.zh}</p>
-              <p style={{ fontSize: 13, color: "#8A8178", margin: 0 }}>{p.en}</p>
-              <p style={{ fontSize: 11, color: "#B8975A", margin: "4px 0 0" }}>{p.note}</p>
-            </div>
-          ))}
+function Section2({ data, ed, an, dmColor }: any) {
+  return <Sec title="五行分析彩图" en="Five Elements Analysis · 滴天髓理论" num="II">
+    <div style={{ display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:28 }}>
+      {ed.map((w:any,i:number)=>(
+        <div key={i} style={{ textAlign:"center" }}>
+          <div style={{ width:72,height:72,borderRadius:"50%",background:WARME[i]||WARM_PALETTE.accent,margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:300,color:"#fff" }}>{w.count}</div>
+          <p style={{ fontSize:12,color:WARM_PALETTE.text,margin:"0 0 1px" }}>{w.nameEn}</p>
+          <p style={{ fontSize:10,color:WARM_PALETTE.muted,margin:0 }}>{w.name} {w.percentage}%</p>
         </div>
-        <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: "#8A8178" }}>
-          排盘采用早子时/晚子时细分法 · 23:00-00:00晚子时日柱用前一日 · 00:00-01:00早子时日柱用当日
+      ))}
+    </div>
+    <Card>
+      <div style={{ display:"flex",gap:24,flexWrap:"wrap" }}>
+        <div style={{ flex:1,minWidth:240 }}>
+          <h3 style={{ fontSize:15,fontWeight:400,margin:"0 0 10px",color:dmColor }}>用神 · Yong Shen</h3>
+          <p style={{ fontSize:28,color:dmColor,margin:"0 0 8px",fontWeight:300 }}>{data.disuitianshu?.yongshen || an.dominant.name}</p>
+          <p style={{ fontSize:12,lineHeight:1.8,color:WARM_PALETTE.text,margin:0 }}>{data.disuitianshu?.analysis || an.dominant.desc}</p>
         </div>
-      </Section>
-
-      {/* ═══════ SECTION 2: 五行分析彩图 ═══════ */}
-      <Section title="五行分析彩图 · Five Elements Analysis" subtitle="采纳滴天髓理论 · Di Tian Sui Theory" icon="Ⅱ">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 24 }}>
-          {ed.map((w, i) => (
-            <div key={i} style={{ textAlign: "center" }}>
-              <div style={{ height: 100, background: w.color, borderRadius: "50%", width: 100, margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: "#fff", fontSize: 28, fontWeight: 300 }}>{w.count}</span>
-              </div>
-              <p style={{ fontSize: 14, color: "#2B2318", margin: "0 0 2px", fontWeight: 400 }}>{w.nameEn}</p>
-              <p style={{ fontSize: 12, color: "#8A8178", margin: 0 }}>{w.name} {w.percentage}%</p>
-            </div>
-          ))}
-        </div>
-
-        {/* 滴天髓分析 */}
-        <div style={{ background: "linear-gradient(135deg,#F3EFE7,#EDE8DE)", padding: 28, borderRadius: 2, border: "1px solid #E3DBCC" }}>
-          <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-            <div style={{ flex: 1, minWidth: 280 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 400, margin: "0 0 12px", color: "#B8975A" }}>五行旺衰等级 · Element Strength</h3>
-              <p style={{ fontSize: 13, lineHeight: 1.8, color: "#3A342C", margin: 0 }}>
-                {an.dominant.nameEn}({an.dominant.name}) 为主导元素，{an.secondary.nameEn}({an.secondary.name}) 为次要元素。
-                {an.missing.length > 0 && ` 命局缺${an.missing.map((m:any) => m.name).join("、")}。`}
-              </p>
-            </div>
-            <div style={{ flex: 1, minWidth: 280 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 400, margin: "0 0 12px", color: "#B8975A" }}>滴天髓用神 · Yong Shen</h3>
-              <p style={{ fontSize: 32, color: dm.color, margin: "0 0 6px", fontWeight: 300 }}>
-                {report.disuitianshu?.yongshen || an.dominant.name}
-              </p>
-              <p style={{ fontSize: 13, lineHeight: 1.7, color: "#3A342C", margin: 0 }}>
-                {report.disuitianshu?.analysis || `日主${dm.gan}(${dm.wuxing})，${an.profile}。取${an.dominant.name}为用神，扶抑得宜。`}
-              </p>
-            </div>
-          </div>
-          <div style={{ marginTop: 16, padding: "12px 16px", background: "#fff", borderRadius: 2, border: "1px solid #E3DBCC" }}>
-            <span style={{ fontSize: 11, color: "#8A8178" }}>滴天髓云：</span>
-            <span style={{ fontSize: 12, color: "#3A342C", fontStyle: "italic" }}>"道有体用，不可以一端论也，要在扶之抑之得其宜。旺极者抑之反激而有害，则宜从其强而扶之；弱极者扶之徒劳而无功，则宜从其弱而抑之。"</span>
-          </div>
-        </div>
-      </Section>
-
-      {/* ═══════ SECTION 3: 五行能量强弱 ═══════ */}
-      <Section title="五行能量强弱 · Energy Dynamics" subtitle="采纳盲派理论 · Blind School Theory" icon="Ⅲ">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 24 }}>
-          {ed.map((w, i) => (
-            <div key={i} style={{ border: "1px solid #E3DBCC", padding: "14px 18px", background: "#FBF7F0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 14, fontWeight: 400 }}>{w.nameEn} {w.name}</span>
-                <span style={{ fontSize: 22, color: w.color, fontWeight: 300 }}>{w.count}</span>
-              </div>
-              <div style={{ height: 12, background: "#EDE8DE", borderRadius: 6 }}>
-                <div style={{ height: 12, width: `${Math.max(2, w.barWidth)}%`, background: w.color, borderRadius: 6, transition: "width 1s ease" }} />
-              </div>
-              <p style={{ fontSize: 11, color: "#8A8178", margin: "4px 0 0" }}>{w.percentage}%</p>
-            </div>
-          ))}
-        </div>
-        <div style={{ background: "#F3EFE7", padding: 24, borderRadius: 2 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 400, margin: "0 0 8px", color: "#B8975A" }}>盲派能量做功分析</h3>
-          <p style={{ fontSize: 13, lineHeight: 1.8, color: "#3A342C", margin: 0 }}>
-            {report.mangpai?.flow || `日主${dm.gan}(${dm.wuxing})${an.dominant.name}旺，能量流向${an.dominant.desc || ""}。${an.secondary.name}为辅助力量。五行流通${an.missing.length > 0 ? "受阻，需补" + an.missing.map((m:any) => m.name).join("、") : "顺畅，命局平衡。"}`}
+        <div style={{ flex:1,minWidth:240 }}>
+          <h3 style={{ fontSize:15,fontWeight:400,margin:"0 0 10px",color:dmColor }}>旺衰等级</h3>
+          <p style={{ fontSize:12,lineHeight:1.8,color:WARM_PALETTE.text,margin:0 }}>
+            {an.dominant.nameEn}({an.dominant.name})为{data.disuitianshu?.grade||"中"}等，
+            {an.secondary.nameEn}({an.secondary.name})为辅。
+            {an.missing.length>0?`缺${an.missing.map((m:any)=>m.name).join("、")}。`:"五行俱全。"}
           </p>
         </div>
-      </Section>
-
-      {/* ═══════ SECTION 4: 五行人生轨迹 ═══════ */}
-      <Section title="五行人生轨迹 · Life Trajectory" subtitle="过去十年 · 现在十年" icon="Ⅳ">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 24 }}>
-          {/* Past 10 years */}
-          <div style={{ background: "#FBF7F0", border: "1px solid #E3DBCC", padding: 24 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 400, margin: "0 0 12px", color: "#8A8178", textTransform: "uppercase", letterSpacing: "0.08em" }}>过去十年 · Past Decade</h3>
-            <p style={{ fontSize: 28, color: "#C75B39", margin: "0 0 8px", fontWeight: 300 }}>{report.mangpai?.pastTen || "探索奠基期"}</p>
-            <p style={{ fontSize: 13, lineHeight: 1.7, color: "#3A342C", margin: 0 }}>
-              {report.mangpai?.pastTenEn || "Foundation and exploration phase. Building the groundwork for current endeavors."}
-            </p>
-          </div>
-          {/* Current 10 years */}
-          <div style={{ background: dm.color + "10", border: `2px solid ${dm.color}`, padding: 24 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 400, margin: "0 0 12px", color: dm.color, textTransform: "uppercase", letterSpacing: "0.08em" }}>现在十年 · Current Decade</h3>
-            <p style={{ fontSize: 28, color: dm.color, margin: "0 0 8px", fontWeight: 300 }}>{report.mangpai?.currentTen || "发展上升期"}</p>
-            <p style={{ fontSize: 13, lineHeight: 1.7, color: "#3A342C", margin: 0 }}>
-              {report.mangpai?.currentTenEn || "Growth and ascension phase. Current energies support advancement and achievement."}
-            </p>
-          </div>
-        </div>
-
-        {/* 大运表 */}
-        {report.dayun && report.dayun.length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 400, margin: "0 0 12px", color: "#B8975A" }}>大运流年 · Ten-Year Luck Cycles</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-              {report.dayun.slice(0, 8).map((dy, i) => (
-                <div key={i} style={{ padding: "12px 16px", border: "1px solid #E3DBCC", background: i === 1 ? dm.color + "15" : "#FBF7F0", textAlign: "center" }}>
-                  <p style={{ fontSize: 10, color: "#8A8178", textTransform: "uppercase", margin: "0 0 4px" }}>{dy.age}</p>
-                  <p style={{ fontSize: 16, fontWeight: 300, margin: "0 0 2px" }}>{dy.ganzhi}</p>
-                  <p style={{ fontSize: 11, color: "#8A8178", margin: 0 }}>{dy.nayin} · {dy.wuxing}</p>
-                  <p style={{ fontSize: 10, color: "#B4A89A", margin: "2px 0 0" }}>{dy.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </Section>
-
-      {/* ═══════ SECTION 5: 幸运体系 ═══════ */}
-      <Section title="人生幸运体系 · Your Lucky Guide" subtitle="幸运颜色 · 幸运环境 · 幸运时机" icon="Ⅴ">
-        {/* Colors */}
-        <h3 style={{ fontSize: 16, fontWeight: 400, margin: "0 0 12px", color: "#B8975A" }}>幸运颜色 · Lucky Colors</h3>
-        <div style={{ display: "flex", gap: 10, marginBottom: 28 }}>
-          {report.colorPalette.map((c, i) => (
-            <div key={i} style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ height: 72, background: c.hex, borderRadius: 4, marginBottom: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
-              <p style={{ fontSize: 11, color: "#3A342C", margin: "0 0 2px" }}>{c.name}</p>
-              <p style={{ fontSize: 9, color: "#8A8178", margin: 0 }}>{c.use}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Environments */}
-        <h3 style={{ fontSize: 16, fontWeight: 400, margin: "0 0 12px", color: "#B8975A" }}>幸运环境 · Lucky Environments</h3>
-        <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
-          {(report.lucky?.environments || ["自然环境","文化空间","生活空间","社交环境","事业环境"]).map((e, i) => (
-            <div key={i} style={{ flex: 1, textAlign: "center", padding: "16px 12px", border: "1px solid #E3DBCC", background: "#FBF7F0" }}>
-              <p style={{ fontSize: 11, color: "#3A342C", margin: 0 }}>{["Nature","Culture","Living","Social","Career"][i] || ""}</p>
-              <p style={{ fontSize: 11, color: "#8A8178", margin: "2px 0 0" }}>{e}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Timing */}
-        <h3 style={{ fontSize: 16, fontWeight: 400, margin: "0 0 12px", color: "#B8975A" }}>幸运时机 · Lucky Timing</h3>
-        <div style={{ display: "flex", gap: 12 }}>
-          {(report.lucky?.timing || ["春","夏","长夏","秋","冬"]).map((t, i) => (
-            <div key={i} style={{ flex: 1, textAlign: "center", padding: "16px 12px", border: `2px solid ${report.colorPalette[i]?.hex || "#E3DBCC"}`, background: "white" }}>
-              <p style={{ fontSize: 13, color: "#3A342C", margin: "0 0 2px" }}>{["Spring","Summer","Late Summer","Autumn","Winter"][i]}</p>
-              <p style={{ fontSize: 12, color: "#8A8178", margin: 0 }}>{t}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* ═══════ SECTION 6: 生活指引 ═══════ */}
-      <Section title="生活指引 · Lifestyle Guidance" icon="✦">
-        <div style={{ display: "grid", gap: 12 }}>
-          {report.lifestyleTips.map((t, i) => (
-            <div key={i} style={{ padding: "18px 22px", border: "1px solid #E3DBCC", background: "#FBF7F0" }}>
-              <h3 style={{ fontSize: 14, fontWeight: 400, margin: "0 0 6px", color: dm.color }}>{t.titleEn} · {t.title}</h3>
-              <p style={{ fontSize: 12, lineHeight: 1.8, color: "#3A342C", margin: 0 }}>{t.tipEn}<br />{t.tip}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* ═══════ TOTEM ═══════ */}
-      <Section title="专属图腾 · Your Personal Totem" icon="◆">
-        <div style={{ textAlign: "center", padding: "40px 20px", background: "#F3EFE7", border: "1px solid #E3DBCC" }}>
-          <p style={{ fontSize: 22, color: dm.color, margin: "0 0 8px", fontWeight: 300 }}>{report.totemDescription.en}</p>
-          <p style={{ fontSize: 14, color: "#8A8178", margin: "0 0 16px" }}>{report.totemDescription.cn}</p>
-          <div style={{ display: "flex", justifyContent: "center", gap: 12 }}>
-            {report.totemDescription.elements.map((e: string, i: number) => (
-              <span key={i} style={{ padding: "6px 18px", border: `1px solid ${dm.color}`, color: dm.color, fontSize: 12, borderRadius: 2 }}>{e}</span>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      {/* ═══════ SPACE ═══════ */}
-      <Section title="空间色彩建议 · Space & Color" icon="◈">
-        <div style={{ display: "grid", gap: 12 }}>
-          {report.spaceTips.map((s, i) => (
-            <div key={i} style={{ padding: "18px 22px", border: "1px solid #E3DBCC", display: "flex", gap: 16, alignItems: "flex-start" }}>
-              <div style={{ width: 24, height: 24, background: s.color, borderRadius: 3, flexShrink: 0, marginTop: 2 }} />
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 400, margin: "0 0 4px" }}>{s.areaEn} · {s.area}</p>
-                <p style={{ fontSize: 12, lineHeight: 1.8, color: "#3A342C", margin: 0 }}>{s.adviceEn}<br />{s.advice}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* ═══════ FOOTER ═══════ */}
-      <div style={{ textAlign: "center", padding: "64px 20px", borderTop: "1px solid #E3DBCC" }}>
-        <p style={{ fontSize: 18, color: "#2B2318", margin: "0 0 4px" }}>Personal. Beautiful. Elemental.</p>
-        <p style={{ fontSize: 11, color: "#8A8178", margin: 0 }}>FiveSelf Studio · {report.reportId}</p>
-        <p style={{ fontSize: 10, color: "#B4A89A", margin: "4px 0 0" }}>本报告基于滴天髓理论与盲派命理精髓生成 · For personal enrichment only</p>
       </div>
-    </div>
-  );
+      <div style={{ marginTop:16,padding:"12px 18px",background:WARM_PALETTE.bg,borderRadius:4 }}>
+        <span style={{ fontSize:10,color:WARM_PALETTE.muted }}>滴天髓云：</span>
+        <span style={{ fontSize:11,color:WARM_PALETTE.text,fontStyle:"italic" }}>"道有体用，不可以一端论也。旺极者从其强，弱极者从其弱。扶之抑之得其宜。"</span>
+      </div>
+    </Card>
+  </Sec>;
 }
 
-function Cover({ report }: { report: BaziData }) {
-  const dm = report.dayMaster;
-  return (
-    <div style={{ textAlign: "center", padding: "100px 20px 80px", borderBottom: "1px solid #E3DBCC", background: "linear-gradient(180deg, #FBF7F0 0%, #F9F6F0 100%)" }}>
-      <p style={{ fontSize: 12, letterSpacing: "0.2em", textTransform: "uppercase", color: "#8A8178", margin: "0 0 20px" }}>Five Elements Visual Blueprint</p>
-      <h1 style={{ fontSize: "clamp(36px,6vw,64px)", fontWeight: 300, margin: "0 0 12px", lineHeight: 1.1, color: "#2B2318" }}>五行个人蓝图</h1>
-      <div style={{ display: "inline-block", width: 120, height: 120, borderRadius: "50%", background: dm.color, margin: "24px auto", lineHeight: "120px", fontSize: 48, fontWeight: 300, color: "#fff" }}>
-        {dm.gan}
-      </div>
-      <p style={{ fontSize: 22, color: dm.color, margin: "0 0 4px" }}>{dm.ganEn} · {dm.wuxingEn} · {dm.wuxing}</p>
-      <p style={{ color: "#8A8178", fontSize: 14, margin: "8px 0 0" }}>Prepared for <strong style={{ color: "#2B2318" }}>{report.customerName}</strong> · {report.birthDate}</p>
-      <p style={{ color: "#B8975A", fontSize: 11, marginTop: 8 }}>{report.reportId}</p>
+function Section3({ ed, dmColor }: any) {
+  return <Sec title="五行能量强弱" en="Energy Dynamics · 盲派理论" num="III">
+    <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:20 }}>
+      {ed.map((w:any,i:number)=>(
+        <div key={i} style={{ padding:"12px 16px",border:`1px solid ${WARM_PALETTE.border}`,background:WARM_PALETTE.card }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
+            <span style={{ fontSize:13 }}>{w.nameEn} {w.name}</span>
+            <span style={{ fontSize:20,color:WARME[i]||dmColor,fontWeight:300 }}>{w.count}</span>
+          </div>
+          <div style={{ height:8,background:WARM_PALETTE.border,borderRadius:4 }}>
+            <div style={{ height:8,width:`${Math.max(3,w.barWidth)}%`,background:WARME[i]||dmColor,borderRadius:4 }} />
+          </div>
+          <p style={{ fontSize:9,color:WARM_PALETTE.muted,margin:"3px 0 0" }}>{w.percentage}%</p>
+        </div>
+      ))}
     </div>
-  );
+    <p style={{ fontSize:12,lineHeight:1.9,color:WARM_PALETTE.text,margin:0 }}>
+      {data?.mangpai?.flow || `五行能量${ed[0].count>=4?'强劲':'平衡'}，${WUXING_EN[ed[0].percentage>30?0:ed[0].percentage>20?1:2]}为主导。`}
+    </p>
+  </Sec>;
 }
 
-function Section({ title, subtitle, icon, children }: { title: string; subtitle?: string; icon: string; children: React.ReactNode }) {
-  return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: "48px 20px", borderBottom: "1px solid #EDE8DE" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: subtitle ? 4 : 20 }}>
-        <span style={{ fontSize: 14, color: "#B8975A", fontWeight: 300 }}>{icon}</span>
-        <h2 style={{ fontSize: 22, fontWeight: 400, margin: 0, color: "#2B2318" }}>{title}</h2>
+function Section4({ data, dmColor }: any) {
+  return <Sec title="五行人生轨迹" en="Life Trajectory · 过去现在十年" num="IV">
+    <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14,marginBottom:20 }}>
+      <div style={{ background:WARM_PALETTE.card,border:`1px solid ${WARM_PALETTE.border}`,padding:24,textAlign:"center" }}>
+        <p style={{ fontSize:9,textTransform:"uppercase",letterSpacing:"0.12em",color:WARM_PALETTE.muted,margin:"0 0 10px" }}>过去十年 · Past Decade</p>
+        <p style={{ fontSize:22,color:WARM_PALETTE.rose,margin:"0 0 8px",fontWeight:300 }}>{data.mangpai?.pastTen||"探索奠基期"}</p>
+        <p style={{ fontSize:11,lineHeight:1.7,color:WARM_PALETTE.muted,margin:0 }}>{data.mangpai?.pastTenEn||""}</p>
       </div>
-      {subtitle && <p style={{ fontSize: 13, color: "#8A8178", margin: "0 0 24px", paddingLeft: 32 }}>{subtitle}</p>}
-      {children}
+      <div style={{ background:dmColor+"10",border:`2px solid ${dmColor}`,padding:24,textAlign:"center" }}>
+        <p style={{ fontSize:9,textTransform:"uppercase",letterSpacing:"0.12em",color:dmColor,margin:"0 0 10px" }}>现在十年 · Current Decade</p>
+        <p style={{ fontSize:22,color:dmColor,margin:"0 0 8px",fontWeight:300 }}>{data.mangpai?.currentTen||"发展上升期"}</p>
+        <p style={{ fontSize:11,lineHeight:1.7,color:WARM_PALETTE.muted,margin:0 }}>{data.mangpai?.currentTenEn||""}</p>
+      </div>
     </div>
-  );
+    {data.dayun?.length>0 && (
+      <div>
+        <h3 style={{ fontSize:14,fontWeight:400,margin:"0 0 12px",color:dmColor }}>大运流年 · 十年周期</h3>
+        <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6 }}>
+          {data.dayun.slice(0,8).map((dy:any,i:number)=>(
+            <div key={i} style={{ padding:"10px 12px",border:`1px solid ${WARM_PALETTE.border}`,background:i===1?dmColor+"10":WARM_PALETTE.card,textAlign:"center" }}>
+              <p style={{ fontSize:9,color:WARM_PALETTE.muted,margin:"0 0 3px" }}>{dy.age}</p>
+              <p style={{ fontSize:15,fontWeight:300,margin:"0 0 2px" }}>{dy.ganzhi}</p>
+              <p style={{ fontSize:9,color:WARM_PALETTE.gold,margin:0 }}>{dy.nayin}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </Sec>;
 }
 
-function Centered({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F9F6F0", fontFamily: "Georgia,'Noto Serif SC',serif", color: "#2B2318", padding: 40, textAlign: "center" }}>{children}</div>;
+function Section5({ data, dmColor }: any) {
+  return <Sec title="人生幸运体系" en="Your Lucky Guide · 颜色·环境·时机" num="V">
+    <h3 style={{ fontSize:13,fontWeight:400,color:dmColor,margin:"0 0 10px" }}>幸运颜色</h3>
+    <div style={{ display:"flex",gap:8,marginBottom:24 }}>
+      {data.colorPalette.map((c:any,i:number)=>(
+        <div key={i} style={{ flex:1,textAlign:"center" }}>
+          <div style={{ height:56,background:c.hex,borderRadius:40,marginBottom:6,boxShadow:`0 2px 8px ${WARM_PALETTE.border}` }} />
+          <p style={{ fontSize:9,color:WARM_PALETTE.text,margin:0 }}>{c.name}</p>
+        </div>
+      ))}
+    </div>
+    <h3 style={{ fontSize:13,fontWeight:400,color:dmColor,margin:"0 0 10px" }}>幸运环境</h3>
+    <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:24 }}>
+      {(data.lucky?.environments||["自然环境","文化空间","生活空间"]).slice(0,6).map((e:string,i:number)=>(
+        <div key={i} style={{ padding:"12px 14px",border:`1px solid ${WARM_PALETTE.border}`,background:WARM_PALETTE.card,textAlign:"center" }}>
+          <p style={{ fontSize:10,color:WARM_PALETTE.text,margin:0 }}>{["Nature","Culture","Living","Social","Career","Travel"][i]}</p>
+          <p style={{ fontSize:9,color:WARM_PALETTE.muted,margin:"2px 0 0" }}>{e}</p>
+        </div>
+      ))}
+    </div>
+    <h3 style={{ fontSize:13,fontWeight:400,color:dmColor,margin:"0 0 10px" }}>幸运时机</h3>
+    <div style={{ display:"flex",gap:8 }}>
+      {(data.lucky?.timing||["春季","夏季","长夏","秋季","冬季"]).map((t:string,i:number)=>(
+        <div key={i} style={{ flex:1,textAlign:"center",padding:"12px 8px",border:`2px solid ${data.colorPalette[i]?.hex||WARM_PALETTE.border}`,background:"#fff" }}>
+          <p style={{ fontSize:12,color:WARM_PALETTE.text,margin:"0 0 1px" }}>{["Spring","Summer","LateSum","Autumn","Winter"][i]}</p>
+          <p style={{ fontSize:10,color:WARM_PALETTE.muted,margin:0 }}>{t}</p>
+        </div>
+      ))}
+    </div>
+  </Sec>;
+}
+
+function Section6({ data, dmColor }: any) {
+  return <Sec title="生活指引与空间色彩" en="Lifestyle & Space Guidance" num="VI">
+    <div style={{ display:"grid",gap:8,marginBottom:24 }}>
+      {data.lifestyleTips.map((t:any,i:number)=>(
+        <div key={i} style={{ padding:"14px 18px",border:`1px solid ${WARM_PALETTE.border}`,background:WARM_PALETTE.card }}>
+          <h3 style={{ fontSize:13,fontWeight:400,margin:"0 0 4px",color:dmColor }}>{t.titleEn} · {t.title}</h3>
+          <p style={{ fontSize:11,lineHeight:1.8,color:WARM_PALETTE.muted,margin:0 }}>{t.tipEn}</p>
+          <p style={{ fontSize:11,lineHeight:1.8,color:WARM_PALETTE.text,margin:"2px 0 0" }}>{t.tip}</p>
+        </div>
+      ))}
+    </div>
+    <h3 style={{ fontSize:13,fontWeight:400,color:dmColor,margin:"0 0 10px" }}>专属图腾</h3>
+    <div style={{ textAlign:"center",padding:"28px 20px",background:WARM_PALETTE.card,border:`1px solid ${WARM_PALETTE.border}`,marginBottom:20 }}>
+      <p style={{ fontSize:18,color:dmColor,margin:"0 0 6px",fontWeight:300 }}>{data.totemDescription.en}</p>
+      <p style={{ fontSize:13,color:WARM_PALETTE.muted,margin:"0 0 12px" }}>{data.totemDescription.cn}</p>
+      <div style={{ display:"flex",justifyContent:"center",gap:8 }}>
+        {data.totemDescription.elements.map((e:string,i:number)=>(
+          <span key={i} style={{ padding:"4px 14px",border:`1px solid ${dmColor}`,color:dmColor,fontSize:10,borderRadius:2 }}>{e}</span>
+        ))}
+      </div>
+    </div>
+    <div style={{ display:"grid",gap:8 }}>
+      {data.spaceTips.map((s:any,i:number)=>(
+        <div key={i} style={{ padding:"14px 18px",border:`1px solid ${WARM_PALETTE.border}`,background:WARM_PALETTE.card,display:"flex",gap:12,alignItems:"flex-start" }}>
+          <div style={{ width:20,height:20,background:s.color,borderRadius:3,flexShrink:0,marginTop:2 }} />
+          <div>
+            <p style={{ fontSize:13,fontWeight:400,margin:"0 0 3px" }}>{s.areaEn} · {s.area}</p>
+            <p style={{ fontSize:11,lineHeight:1.8,color:WARM_PALETTE.muted,margin:0 }}>{s.adviceEn}</p>
+            <p style={{ fontSize:11,lineHeight:1.8,color:WARM_PALETTE.text,margin:"2px 0 0" }}>{s.advice}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </Sec>;
+}
+
+function Footer({ data }: any) {
+  return <div style={{ textAlign:"center",padding:"60px 20px",borderTop:`1px solid ${WARM_PALETTE.border}`,background:WARM_PALETTE.card }}>
+    <p style={{ fontSize:16,color:WARM_PALETTE.text,margin:"0 0 4px" }}>Personal. Beautiful. Elemental.</p>
+    <p style={{ fontSize:10,color:WARM_PALETTE.muted,margin:0 }}>FiveSelf Studio · {data.reportId}</p>
+    <p style={{ fontSize:9,color:WARM_PALETTE.gold,margin:"4px 0 0" }}>本报告基于滴天髓理论与盲派命理精髓 · For personal enrichment only</p>
+  </div>;
+}
+
+function Sec({ title, en, num, children }: { title:string; en:string; num:string; children:React.ReactNode }) {
+  return <div style={{ maxWidth:820,margin:"0 auto",padding:"56px 20px",borderBottom:`1px solid ${WARM_PALETTE.border}` }}>
+    <div style={{ marginBottom:28 }}>
+      <span style={{ fontSize:12,color:WARM_PALETTE.gold,fontWeight:300,letterSpacing:"0.05em" }}>{num}</span>
+      <h2 style={{ fontSize:22,fontWeight:400,margin:"4px 0 2px" }}>{title}</h2>
+      <p style={{ fontSize:12,color:WARM_PALETTE.muted,margin:0 }}>{en}</p>
+    </div>
+    {children}
+  </div>;
+}
+
+function Card({ children }: any) {
+  return <div style={{ background:WARM_PALETTE.card,border:`1px solid ${WARM_PALETTE.border}`,padding:28,borderRadius:2 }}>{children}</div>;
+}
+
+function Wait({ children }: any) {
+  return <div style={{ display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:WARM_PALETTE.bg,fontFamily:"Georgia,'Noto Serif SC',serif",color:WARM_PALETTE.text,padding:40,textAlign:"center" }}>{children}</div>;
 }
