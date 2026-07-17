@@ -3,7 +3,7 @@
  * 基于 iztro npm 包, 提供完整紫微斗数命盘分析
  * 与八字命理互补, 形成"八字+紫微"双轨命书
  */
-import astrolabe from "iztro";
+import * as iztro from "iztro";
 
 // 12宫位
 const PALACES = ["命宫","兄弟","夫妻","子女","财帛","疾厄","迁移","交友","官禄","田宅","福德","父母"];
@@ -37,7 +37,9 @@ export interface ZiweiResult {
 /** 从出生日期计算紫微斗数命盘 */
 export function getZiweiChart(year: number, month: number, day: number, hour: number, gender: string): ZiweiResult | null {
   try {
-    const chart = astrolabe.bySolar(`${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`, hour, gender === "male" ? 0 : 1, "zh-CN");
+    // Convert 24h to 时辰 index (0-11)
+    const shichen = hour === 23 ? 0 : hour === 0 ? 0 : Math.floor((hour + 1) / 2);
+    const chart = iztro.astro.bySolar(`${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`, shichen, gender === "male" ? 0 : 1, "zh-CN");
     if (!chart) return null;
 
     const palaces = chart.palaces?.map((p: any) => ({
