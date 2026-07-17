@@ -44,8 +44,34 @@ function S1({d,dm}:any){
 
 function S2({wxData,dm,ed}:any){
   const dmC=T.w[WX.indexOf(dm.wuxing)]||T.gold,maxVal=Math.max(...wxData.map((d:any)=>d.count),5)+1;
-  const ro={radar:{center:["50%","55%"],radius:"65%",indicator:WX.map(w=>({name:w,max:maxVal})),axisName:{color:T.mute,fontSize:14,fontFamily:"Georgia,serif"},splitArea:{areaStyle:{color:["#fbf7f0","#f7f1e8","#f2ebe0","#ede5d8","#e8dfd0"]}},splitLine:{lineStyle:{color:T.border}},axisLine:{lineStyle:{color:"#d8cfc0"}}},series:[{type:"radar",data:[{value:WX.map(w=>wxData.find((d2:any)=>d2.name===w)?.count??0),areaStyle:{color:dmC,opacity:0.15},lineStyle:{color:dmC,width:2.5},itemStyle:{color:dmC},symbol:"circle",symbolSize:8}}]};
-  const bo={tooltip:{trigger:"axis"},grid:{left:48,right:24,top:16,bottom:32},xAxis:{type:"category",data:wxData.map((d:any)=>d.name),axisLine:{lineStyle:{color:"#d8cfc0"}},axisLabel:{color:T.mute,fontSize:13,fontFamily:"Georgia,serif"}},yAxis:{type:"value",splitLine:{lineStyle:{color:T.border,type:"dashed"}},axisLabel:{color:T.mute,fontSize:11}},series:[{type:"bar",data:wxData.map((d:any)=>({value:d.count,itemStyle:{color:T.w[WX.indexOf(d.name)],borderRadius:[6,6,0,0]}})),barWidth:"45%"}]};
+  const ro = {
+    radar: {
+      center: ["50%", "55%"], radius: "65%",
+      indicator: WX.map((w: string) => ({ name: w, max: maxVal })),
+      axisName: { color: T.mute, fontSize: 14, fontFamily: "Georgia,serif" },
+      splitArea: { areaStyle: { color: ["#fbf7f0", "#f7f1e8", "#f2ebe0", "#ede5d8", "#e8dfd0"] } },
+      splitLine: { lineStyle: { color: T.border } },
+      axisLine: { lineStyle: { color: "#d8cfc0" } },
+    },
+    series: [{
+      type: "radar",
+      data: [{
+        value: WX.map((w: string) => wxData.find((d2: any) => d2.name === w)?.count ?? 0),
+        areaStyle: { color: dmC, opacity: 0.15 },
+        lineStyle: { color: dmC, width: 2.5 },
+        itemStyle: { color: dmC },
+        symbol: "circle",
+        symbolSize: 8,
+      }],
+    }],
+  };
+  const bo = {
+    tooltip: { trigger: "axis" },
+    grid: { left: 48, right: 24, top: 16, bottom: 32 },
+    xAxis: { type: "category", data: wxData.map((d: any) => d.name), axisLine: { lineStyle: { color: "#d8cfc0" } }, axisLabel: { color: T.mute, fontSize: 13, fontFamily: "Georgia,serif" } },
+    yAxis: { type: "value", splitLine: { lineStyle: { color: T.border, type: "dashed" } }, axisLabel: { color: T.mute, fontSize: 11 } },
+    series: [{ type: "bar", data: wxData.map((d: any) => ({ value: d.count, itemStyle: { color: T.w[WX.indexOf(d.name)], borderRadius: [6, 6, 0, 0] } })), barWidth: "45%" }],
+  };
   return<Sec num="Ⅱ" title="五行分析" en="Five Elements · 滴天髓理论" wide>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:28}}>
       <div style={{background:T.card,border:`1px solid ${T.border}`,padding:12}}><ReactECharts option={ro} style={{height:400}}/><p style={{textAlign:"center",fontSize:12,color:T.mute,marginTop:4}}>五行雷达图 · Radar Chart</p></div>
