@@ -20,7 +20,7 @@ export async function generateMingShu(input: MingShuInput): Promise<{ text?: str
 要求:口语化、具体到干支、有断有解、不套模板。中文。`;
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`, {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         system_instruction:{parts:[{text:"你是从业三十年的资深命理师，精通滴天髓、穷通宝鉴、盲派、紫微斗数。命书风格口语化、具体到八字干支、有断有解。绝不用模板腔。"}]},
