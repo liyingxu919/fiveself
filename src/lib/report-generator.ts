@@ -50,6 +50,21 @@ export interface ReportContent {
   totemDescription: { cn: string; en: string };
   totemElements: string[];
 
+  // 生肖
+  shengXiao?: { name: string; nameEn: string };
+
+  // 大运流年
+  dayun?: Array<{ age: string; ganzhi: string; nayin: string; wuxing: string; desc: string }>;
+
+  // 滴天髓分析
+  disuitianshu?: { yongshen: string; yongshenEn: string; analysis: string; analysisEn: string; grade: string };
+
+  // 盲派分析
+  mangpai?: { pastTen: string; pastTenEn: string; currentTen: string; currentTenEn: string; flow: string };
+
+  // 幸运体系
+  lucky?: { colors: string[]; environments: string[]; timing: string[] };
+
   // 生活方式建议
   lifestyleTips: Array<{ title: string; titleEn: string; tip: string; tipEn: string }>;
 
@@ -267,5 +282,104 @@ export function generateReportContent(
 
     lifestyleTips: lifestyleTipsMap[dmWuxing] || lifestyleTipsMap[2],
     spaceTips: spaceTipsMap[dmWuxing] || spaceTipsMap[2],
+
+    // ── 生肖 ──
+    shengXiao: { name: bazi.shengXiao, nameEn: bazi.shengXiaoEn },
+
+    // ── 大运 ──
+    dayun: generateDayun(bazi, input),
+
+    // ── 滴天髓 ──
+    disuitianshu: {
+      yongshen: WUXING_NAMES[domIdx],
+      yongshenEn: WUXING_NAMES_EN[domIdx],
+      analysis: `日主${dayGan}(${dmWuxingName})，${domName}为主导，${secName}为辅。命局${bazi.missingElements.length > 0 ? "缺" + bazi.missingElements.map((i: number) => WUXING_NAMES[i]).join("、") : "五行俱全"}。取${domName}为用神，扶之抑之得其宜。`,
+      analysisEn: `Day Master ${dayGanEn}(${dmWuxingNameEn}), ${domNameEn} dominant, ${secNameEn} auxiliary. ${bazi.missingElements.length > 0 ? "Missing " + bazi.missingElements.map((i: number) => WUXING_NAMES_EN[i]).join(", ") + "." : "All five elements present."} Use ${domNameEn} as Yong Shen for balance.`,
+      grade: bazi.wuxingCount[domIdx] >= 4 ? "旺" : bazi.wuxingCount[domIdx] >= 2 ? "中" : "弱",
+    },
+
+    // ── 盲派 ──
+    mangpai: {
+      pastTen: `${domName}运奠基期`,
+      pastTenEn: `${domNameEn} foundation phase`,
+      currentTen: `${domName}运发展期`,
+      currentTenEn: `${domNameEn} growth phase`,
+      flow: `日主${dayGan}(${dmWuxingName})，${domName}能量${bazi.wuxingCount[domIdx] >= 4 ? "旺盛" : "适中"}，五行能量${bazi.wuxingCount[domIdx] >= 5 ? "强劲做功" : "平稳流动"}。${secName}辅助，${bazi.missingElements.length > 0 ? "缺" + bazi.missingElements.map((i: number) => WUXING_NAMES[i]).join("、") + "需在相应流年补足" : "诸行完备，流通无碍"}。`,
+    },
+
+    // ── 幸运体系 ──
+    lucky: {
+      colors: colorPalettes[dmWuxing].map(c => c.name),
+      environments: [
+        dmWuxing === 0 ? "森林、花园、公园" : dmWuxing === 1 ? "阳光充足处、演艺场所" : dmWuxing === 2 ? "山丘、田野、陶瓷工作室" : dmWuxing === 3 ? "现代建筑、图书馆、金属装饰空间" : "海边、湖边、水族馆、温泉",
+        dmWuxing === 0 ? "茶馆、书房、植物园" : dmWuxing === 1 ? "会议室、舞台、派对" : dmWuxing === 2 ? "农庄、花园、家居店" : dmWuxing === 3 ? "画廊、博物馆、高层建筑" : "浴室、泳池、河边步道",
+        "光线柔和、通风良好的空间",
+        "有艺术品和自然元素的环境",
+        "安静且能专注的工作区域",
+      ],
+      timing: [
+        dmWuxing === 0 ? "春季（寅卯月）" : dmWuxing === 1 ? "夏季（巳午月）" : dmWuxing === 2 ? "季末（辰未戌丑月）" : dmWuxing === 3 ? "秋季（申酉月）" : "冬季（亥子月）",
+        "早晨 5-7 时",
+        "新月和满月前后",
+        "个人本命年及三合年份",
+        "流年地支与日柱三合六合之时",
+      ],
+    },
   };
+}
+
+/** 纳音五行表（六十甲子） */
+const NAYIN: Record<string, string> = {
+  "甲子":"海中金","乙丑":"海中金","丙寅":"炉中火","丁卯":"炉中火","戊辰":"大林木","己巳":"大林木",
+  "庚午":"路旁土","辛未":"路旁土","壬申":"剑锋金","癸酉":"剑锋金","甲戌":"山头火","乙亥":"山头火",
+  "丙子":"涧下水","丁丑":"涧下水","戊寅":"城头土","己卯":"城头土","庚辰":"白蜡金","辛巳":"白蜡金",
+  "壬午":"杨柳木","癸未":"杨柳木","甲申":"泉中水","乙酉":"泉中水","丙戌":"屋上土","丁亥":"屋上土",
+  "戊子":"霹雳火","己丑":"霹雳火","庚寅":"松柏木","辛卯":"松柏木","壬辰":"长流水","癸巳":"长流水",
+  "甲午":"沙中金","乙未":"沙中金","丙申":"山下火","丁酉":"山下火","戊戌":"平地木","己亥":"平地木",
+  "庚子":"壁上土","辛丑":"壁上土","壬寅":"金箔金","癸卯":"金箔金","甲辰":"佛灯火","乙巳":"佛灯火",
+  "丙午":"天河水","丁未":"天河水","戊申":"大驿土","己酉":"大驿土","庚戌":"钗钏金","辛亥":"钗钏金",
+  "壬子":"桑柘木","癸丑":"桑柘木","甲寅":"大溪水","乙卯":"大溪水","丙辰":"沙中土","丁巳":"沙中土",
+  "戊午":"天上火","己未":"天上火","庚申":"石榴木","辛酉":"石榴木","壬戌":"大海水","癸亥":"大海水",
+};
+
+const TIAN_GAN = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const DI_ZHI = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const WX = ["木","火","土","金","水"];
+const WUXING_ZHI: Record<string, number> = { "寅":0,"卯":0,"巳":1,"午":1,"辰":2,"戌":2,"丑":2,"未":2,"申":3,"酉":3,"亥":4,"子":4 };
+
+function generateDayun(bazi: BaziResult, input: any): Array<{ age: string; ganzhi: string; nayin: string; wuxing: string; desc: string }> {
+  const result: Array<{ age: string; ganzhi: string; nayin: string; wuxing: string; desc: string }> = [];
+  // Calculate starting age based on birth year's heavenly stem (顺逆)
+  const yearGan = bazi.yearPillar.gan;
+  const yearZhi = bazi.yearPillar.zhi;
+
+  // Determine if 顺行 (forward) or 逆行 (reverse)
+  // 阳男阴女顺行，阴男阳女逆行
+  const isYangGan = yearGan % 2 === 0; // 甲丙戊庚壬 = yang
+  const gender = input.gender || "male";
+  const forward = (isYangGan && gender === "male") || (!isYangGan && gender === "female");
+
+  // Starting age approximation: 3-8 years depending on birth month
+  const startAge = forward ? (12 - input.month + 3) % 10 + 3 : (input.month + 8) % 10 + 3;
+
+  // Generate 8 cycles
+  const monthZhi = bazi.monthPillar.zhi;
+  for (let i = 0; i < 8; i++) {
+    const age = startAge + i * 10;
+    const zhiIdx = forward ? (monthZhi + i + 1) % 12 : (monthZhi - i - 1 + 12) % 12;
+    const ganIdx = (yearGan + (forward ? i + 1 : -(i + 1)) + 10) % 10;
+    const ganzhi = TIAN_GAN[ganIdx] + DI_ZHI[zhiIdx];
+    const nayinKey = ganzhi;
+    const nayin = NAYIN[nayinKey] || "未知";
+    const zhiWx = WUXING_ZHI[DI_ZHI[zhiIdx]] ?? 2;
+    const wxName = WX[zhiWx];
+    result.push({
+      age: `${age}岁`,
+      ganzhi,
+      nayin,
+      wuxing: wxName,
+      desc: i < 2 ? "起步" : i < 4 ? "成长" : i < 6 ? "鼎盛" : "收获",
+    });
+  }
+  return result;
 }
