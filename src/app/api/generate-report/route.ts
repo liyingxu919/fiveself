@@ -68,9 +68,14 @@ export async function POST(request: Request) {
     };
     let aiMingShu = "";
     let aiBlueprint: any = null;
-    try { aiMingShu = await generateMingShu(mingShuInput) || ""; } catch(e: any) { aiMingShu = `[Gemini错误: ${e?.message||e}]`; }
-    try { if (aiMingShu) { const bp = await generateBlueprint(aiMingShu, mingShuInput); if (bp) aiBlueprint = JSON.parse(bp); } } catch {}
-    const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint };
+    let geminiError = "";
+    try {
+      const result = await generateMingShu(mingShuInput);
+      if (result?.text) { aiMingShu = result.text; }
+      else if (result?.error) { geminiError = result.error; aiMingShu = `[Gemini: ${result.error}]`; }
+    } catch(e: any) { geminiError = e?.message||String(e); aiMingShu = `[Gemini异常: ${geminiError}]`; }
+    try { if (aiMingShu && !geminiError) { const bp = await generateBlueprint(aiMingShu, mingShuInput); if (bp) aiBlueprint = JSON.parse(bp); } } catch {}
+    const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint, geminiError };
 
     // Save report to Sanity for online access
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;

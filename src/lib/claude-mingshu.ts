@@ -11,8 +11,8 @@ export interface MingShuInput {
 }
 
 /** Gemini 写命书 */
-export async function generateMingShu(input: MingShuInput): Promise<string | null> {
-  if (!GEMINI_KEY) return null;
+export async function generateMingShu(input: MingShuInput): Promise<{ text?: string; error?: string }> {
+  if (!GEMINI_KEY) return { error: "GEMINI_API_KEY not set" };
   const prompt = `你是资深命理师。请为${input.customerName}(${input.birthDate}出生)撰写500-800字命书。
 八字:${input.bazi} 五行:${input.wuxing} 格局:${input.geJu}
 日主:${input.strength} 十神:${input.shiShen} 神煞:${input.shenSha}
@@ -28,12 +28,12 @@ export async function generateMingShu(input: MingShuInput): Promise<string | nul
         generationConfig:{maxOutputTokens:2000,temperature:0.8},
       }),
     });
-    if (!res.ok) { const errTxt = await res.text(); console.error("Gemini HTTP", res.status, errTxt.slice(0,200)); return null; }
+    if (!res.ok) { const et = await res.text(); return { error: `HTTP ${res.status}: ${et.slice(0,200)}` }; }
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) console.error("Gemini empty response:", JSON.stringify(data).slice(0,300));
-    return text || null;
-  } catch(e: any) { console.error("Gemini exception:", e?.message || e); return null; }
+    if (!text) return { error: `Empty response: ${JSON.stringify(data).slice(0,200)}` };
+    return { text };
+  } catch(e: any) { return { error: e?.message || String(e) }; }
 }
 
 /** ChatGPT 根据命书出五行蓝图 */
