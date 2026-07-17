@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
+import { getZiweiChart } from "@/lib/ziwei-engine";
 const SANITY_PROJECT_ID = "penxmsws";
 const SANITY_DATASET = "production";
 const SANITY_API = `https://${SANITY_PROJECT_ID}.api.sanity.io/v1/data/mutate/${SANITY_DATASET}`;
@@ -36,6 +37,9 @@ export async function POST(request: Request) {
     // Calculate Bazi
     const bazi = calculateBazi({ year: y, month: m, day: d, hour: h });
 
+    // Calculate 紫微斗数
+    const ziwei = getZiweiChart(y, m, d, h, "male");
+
     // Generate report content
     const report = generateReportContent(
       bazi,
@@ -43,6 +47,9 @@ export async function POST(request: Request) {
       `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
       `${String(h).padStart(2, "0")}:00`
     );
+
+    // Attach 紫微 data
+    const fullContent = { ...report, ziwei };
 
     // Save report to Sanity for online access
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;
@@ -65,7 +72,7 @@ export async function POST(request: Request) {
                 customerName: name,
                 customerEmail: email,
                 birthDate: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
-                content: JSON.stringify(report),
+                content: JSON.stringify(fullContent),
                 generatedAt: new Date().toISOString(),
                 status: "pending_review",
               },
@@ -88,8 +95,8 @@ export async function POST(request: Request) {
     // Report saved for review - 命理师审核通过后发送邮件
     return NextResponse.json({
       success: true,
-      version: "v3.0-藏干神煞格局",
-      reportId: report.reportId,
+      version: "v5.0-八字+紫微双轨",
+      reportId: fullContent.reportId,
       emailSent: false,
       reportSaved,
       reportUrl: reportSaved ? reportUrl : null,
