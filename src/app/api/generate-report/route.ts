@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
 import { getZiweiChart } from "@/lib/ziwei-engine";
-import { generateMingShu } from "@/lib/claude-mingshu";
+import { generateMingShu, generateBlueprint } from "@/lib/claude-mingshu";
 const SANITY_PROJECT_ID = "penxmsws";
 const SANITY_DATASET = "production";
 const SANITY_API = `https://${SANITY_PROJECT_ID}.api.sanity.io/v1/data/mutate/${SANITY_DATASET}`;
@@ -53,23 +53,24 @@ export async function POST(request: Request) {
     const fullContent = { ...report, ziwei };
 
     // Call Gemini to write authentic 命书 prose
+    const mingShuInput = {
+      customerName: name,
+      birthDate: `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`,
+      birthTime: `${String(h).padStart(2,"0")}:00`,
+      bazi: `${fullContent.baziDisplay.year}年 ${fullContent.baziDisplay.month}月 ${fullContent.baziDisplay.day}日 ${fullContent.baziDisplay.hour}时`,
+      ziwei: ziwei?.analysis || "",
+      shenSha: fullContent.shenSha?.join("、") || "",
+      dayun: (fullContent.dayun || []).map((d:any) => `${d.age}${d.ganzhi}(${d.nayin})`).join("；"),
+      strength: fullContent.disuitianshu?.analysis || "",
+      geJu: fullContent.geJu?.analysis || "",
+      wuxing: fullContent.elementAnalysis?.profile || "",
+      shiShen: fullContent.shiShen?.explanation || "",
+    };
     let aiMingShu = "";
-    try {
-      aiMingShu = await generateMingShu({
-        customerName: name,
-        birthDate: `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`,
-        birthTime: `${String(h).padStart(2,"0")}:00`,
-        bazi: `${fullContent.baziDisplay.year}年 ${fullContent.baziDisplay.month}月 ${fullContent.baziDisplay.day}日 ${fullContent.baziDisplay.hour}时`,
-        ziwei: ziwei?.analysis || "",
-        shenSha: fullContent.shenSha?.join("、") || "",
-        dayun: (fullContent.dayun || []).map((d:any) => `${d.age}${d.ganzhi}(${d.nayin})`).join("；"),
-        strength: fullContent.disuitianshu?.analysis || "",
-        geJu: fullContent.geJu?.analysis || "",
-        wuxing: fullContent.elementAnalysis?.profile || "",
-        shiShen: fullContent.shiShen?.explanation || "",
-      }) || "";
-    } catch {}
-    const contentWithAI = { ...fullContent, aiMingShu };
+    let aiBlueprint: any = null;
+    try { aiMingShu = await generateMingShu(mingShuInput) || ""; } catch {}
+    try { if (aiMingShu) { const bp = await generateBlueprint(aiMingShu, mingShuInput); if (bp) aiBlueprint = JSON.parse(bp); } } catch {}
+    const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint };
 
     // Save report to Sanity for online access
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
     // Report saved for review - 命理师审核通过后发送邮件
     return NextResponse.json({
       success: true,
-      version: "v6.0-Gemini命书",
+      version: "v7.0-Gemini+ChatGPT双AI",
       reportId: contentWithAI.reportId,
       emailSent: false,
       reportSaved,
