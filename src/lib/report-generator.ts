@@ -44,14 +44,11 @@ export interface ReportContent {
   colorPalette: Array<{ hex: string; name: string; use: string }>;
 
   // 生肖
-  shengXiao: { name: string; nameEn: string };
+  shengXiao?: { name: string; nameEn: string };
 
   // 个人图腾描述
   totemDescription: { cn: string; en: string };
   totemElements: string[];
-
-  // 生肖
-  shengXiao?: { name: string; nameEn: string };
 
   // 大运流年
   dayun?: Array<{ age: string; ganzhi: string; nayin: string; wuxing: string; desc: string }>;
@@ -282,9 +279,6 @@ export function generateReportContent(
 
     lifestyleTips: lifestyleTipsMap[dmWuxing] || lifestyleTipsMap[2],
     spaceTips: spaceTipsMap[dmWuxing] || spaceTipsMap[2],
-
-    // ── 生肖 ──
-    shengXiao: { name: bazi.shengXiao, nameEn: bazi.shengXiaoEn },
 
     // ── 大运 ──
     dayun: generateDayun(bazi, input),
