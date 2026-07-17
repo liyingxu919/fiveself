@@ -150,9 +150,15 @@ export function generateReportContent(
 
   const healthEn = `Day Master ${level}. ${dmWxEn === "Earth" ? "Watch digestive health." : dmWxEn === "Wood" ? "Liver and gallbladder care." : dmWxEn === "Fire" ? "Cardiovascular health." : dmWxEn === "Metal" ? "Respiratory and skin health." : "Kidney and urinary health."}`;
 
-  const fortune2026 = `2026年丙午，流年天干丙火为正印透出，地支午火为日主禄地。`
-    + `${ysName === "火" ? "喜用神得力，流年大利事业发展和个人成长，宜积极进取。" : ysName === "水" ? "午火冲水，流年略有动荡，需谨慎理财和人际交往。" : "流年火旺，${yongshen === dmWx ? "比劫帮身，人缘和合作运势上升。" : yongshen === (dmWx+4)%5 ? "印星生身，学业和长辈缘佳。" : "食伤泄秀，利于创意表达和技术发挥。"}"}`
-    + `${dmWxName === "水" && yongshen === 2 ? "注意午火偏旺克制日主，春夏交际需特别注意身体和决策。" : ""}`;
+  let f26 = `2026年丙午，流年天干丙火为正印透出，地支午火为日主禄地。`;
+  if (ysName === "火") f26 += "喜用神得力，流年大利事业发展和个人成长，宜积极进取。";
+  else if (ysName === "水") f26 += "午火冲水，流年略有动荡，需谨慎理财和人际交往。";
+  else {
+    const reas = yongshen === dmWx ? "比劫帮身，人缘和合作运势上升。" : yongshen === (dmWx + 4) % 5 ? "印星生身，学业和长辈缘佳。" : "食伤泄秀，利于创意表达和技术发挥。";
+    f26 += "流年火旺，" + reas;
+  }
+  if (dmWxName === "水" && yongshen === 2) f26 += "注意午火偏旺克制日主，春夏交际需特别注意身体和决策。";
+  const fortune2026 = f26;
 
   const fortune2026En = `2026 Bing Wu year. Heavenly Stem Bing Fire, Earthly Branch Wu Horse. `
     + `${ysEn === "Fire" ? "Favorable year for career and personal growth." : "Fire element active — " + (ysEn === "Water" ? "some turbulence, caution advised." : "social and collaborative energy rises.")}`;
