@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 function useReport(id: string) {
   const [d, setD] = useState<any>(null);
@@ -78,15 +79,33 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
       {/* ═══ SECTION 2: 五行 + 滴天髓 ═══ */}
       <Section num="Ⅱ" title="五行分析彩图" en="Di Tian Sui · Five Elements">
-        <div className="flex justify-center gap-6 mb-10">
-          {d.wuxingDistribution.map((w:any,i:number) => {
-            const wc = COLORS[WX[i]]||"#B8975A";
-            return <div key={i} className="text-center">
-              <div className="circle mx-auto mb-2" style={{background:wc}}>{w.count}</div>
-              <p className="text-xs font-medium">{w.nameEn}</p>
-              <p className="text-[10px] muted">{w.name} {w.percentage}%</p>
-            </div>;
-          })}
+        <div className="grid grid-cols-2 gap-6 mb-10">
+          {/* Radar Chart */}
+          <div className="card p-4" style={{height:360}}>
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={d.wuxingDistribution.map((w:any,i:number)=>({element:w.nameEn,value:w.count,fullMark:8}))}>
+                <PolarGrid stroke="#ebe5db" />
+                <PolarAngleAxis dataKey="element" tick={{fontSize:11,fill:"#9B8E84"}} />
+                <PolarRadiusAxis domain={[0,8]} tick={false} axisLine={false} />
+                <Radar dataKey="value" stroke={COLORS[d.dayMaster.wuxing]||"#B8975A"} fill={COLORS[d.dayMaster.wuxing]||"#B8975A"} fillOpacity={0.15} strokeWidth={2} />
+              </RadarChart>
+            </ResponsiveContainer>
+            <p className="text-xs text-center muted mt-2">Five Elements Radar · 五行雷达图</p>
+          </div>
+
+          {/* Bar Chart */}
+          <div className="card p-4" style={{height:360}}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={d.wuxingDistribution.map((w:any,i:number)=>({name:w.name,count:w.count,color:["#5B7A5C","#C2685C","#B8975A","#8B8580","#5C7B9A"][i]}))} margin={{top:10,right:10,left:-10,bottom:0}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ebe5db" />
+                <XAxis dataKey="name" tick={{fontSize:11,fill:"#9B8E84"}} />
+                <YAxis tick={{fontSize:10,fill:"#9B8E84"}} />
+                <Tooltip />
+                <Bar dataKey="count" radius={[4,4,0,0]} fill="#B8975A" />
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="text-xs text-center muted mt-2">Element Distribution · 五行分布</p>
+          </div>
         </div>
 
         <div className="card p-8 mb-6">
