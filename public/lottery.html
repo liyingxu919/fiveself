@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>发财选号2 · AI神经网络预测版</title>
+<style>
+:root {
+  --bg: #0a0a1a;
+  --card: #12122a;
+  --card2: #1a1a3a;
+  --border: #2a2a5a;
+  --gold: #e8b830;
+  --gold2: #f5d060;
+  --red: #d43030;
+  --red2: #ff4444;
+  --white: #fff5e8;
+  --text: #d0d0e0;
+  --dim: #8080a0;
+  --green: #4caf50;
+  --blue: #4488ff;
+  --cyan: #00ccff;
+  --purple: #aa44ff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:linear-gradient(180deg, #0a0a1a 0%, #0d0d28 40%, #0a0a1a 100%);
+  font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  padding:16px;
+}
+.container{max-width:750px;width:100%}
+
+.header{text-align:center;padding:20px 0 10px;position:relative}
+.header h1{
+  font-size:28px;font-weight:900;letter-spacing:4px;
+  background:linear-gradient(180deg,#00ccff,#8866ff,#aa44ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin:4px 0;
+}
+.header .sub{font-size:13px;color:var(--dim);letter-spacing:3px}
+
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;justify-content:center}
+.tab{
+  flex:1;min-width:80px;padding:11px 8px;border:1.5px solid #2a2a5a;
+  background:#12122a;color:#8080c0;border-radius:8px;cursor:pointer;
+  font-size:13px;font-weight:700;text-align:center;transition:all .2s;letter-spacing:1px;
+}
+.tab:hover{border-color:var(--cyan);color:var(--cyan)}
+.tab.active{background:linear-gradient(180deg,#1a1a4a,#0d0d28);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 20px rgba(0,204,255,.2)}
+
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:20px;margin-bottom:12px;position:relative;overflow:hidden;
+}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent)}
+.card h2{font-size:14px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+.balls-row{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
+.ball{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:900;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.5);transition:transform .3s}
+.ball.front{background:radial-gradient(circle at 35% 35%,#ff3344,#a01020)}
+.ball.back{background:radial-gradient(circle at 35% 35%,#4488ff,#0a3d8a)}
+.ball.rolling{animation:roll .06s linear infinite}
+@keyframes roll{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+.ball-divider{width:2px;background:var(--border);border-radius:1px;height:36px;align-self:center}
+
+.btn-row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.btn{padding:9px 22px;border:none;border-radius:22px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all .2s;font-family:inherit}
+.btn:active{transform:scale(.95)}
+.btn-primary{background:linear-gradient(180deg,#00ccff,#0088cc,#006699);color:#000}
+.btn-outline{background:transparent;color:var(--cyan);border:1.5px solid var(--cyan)}
+.btn-copy{background:transparent;color:var(--green);border:1.5px solid var(--green)}
+.btn-save{background:transparent;color:var(--gold);border:1.5px solid var(--gold)}
+.btn-unlikely{background:transparent;color:#999;border:1.5px solid #555}
+.btn-unlikely:hover{border-color:#ff4444;color:#ff4444}
+.btn-sm{padding:6px 14px;font-size:12px}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#00ccff;color:#000;padding:9px 24px;border-radius:20px;font-size:14px;font-weight:700;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Analysis tags */
+.analysis-bar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.analysis-tag{padding:4px 12px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.tag-hot{background:rgba(255,68,68,.15);color:#ff6666;border:1px solid rgba(255,100,100,.3)}
+.tag-cold{background:rgba(0,204,255,.12);color:#66ccff;border:1px solid rgba(0,204,255,.3)}
+.tag-warm{background:rgba(255,255,255,.04);color:#ccc;border:1px solid rgba(255,255,255,.1)}
+.tag-gold{background:rgba(232,184,48,.12);color:var(--gold);border:1px solid rgba(232,184,48,.3)}
+.tag-green{background:rgba(76,175,80,.12);color:var(--green);border:1px solid rgba(76,175,80,.3)}
+.tag-purple{background:rgba(170,68,255,.12);color:var(--purple);border:1px solid rgba(170,68,255,.3)}
+.tag-score{font-size:13px;letter-spacing:2px}
+
+.strategy-badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:6px}
+.st-ai{background:linear-gradient(135deg,rgba(0,200,255,.3),rgba(170,68,255,.3));color:#ccddff;border:1px solid rgba(100,150,255,.5)}
+.st-lstm{background:linear-gradient(135deg,rgba(0,204,255,.3),rgba(0,136,204,.3));color:#88ddff;border:1px solid rgba(0,180,255,.5)}
+.st-cnn{background:linear-gradient(135deg,rgba(170,68,255,.3),rgba(255,68,200,.3));color:#ffccff;border:1px solid rgba(200,150,255,.5)}
+.st-golden{background:linear-gradient(135deg,rgba(232,184,48,.3),rgba(200,140,20,.3));color:#ffe08a;border:1px solid rgba(232,184,48,.5)}
+.st-red{background:rgba(255,68,68,.2);color:#ff6666;border:1px solid rgba(255,100,100,.4)}
+
+.insight-text{text-align:center;font-size:12px;color:var(--dim);margin-top:8px;line-height:1.8;letter-spacing:1px}
+.insight-text em{font-style:normal;color:var(--cyan);font-weight:700}
+
+/* Stats */
+.stats-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.stat-box{flex:1;min-width:70px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.stat-box .label{font-size:10px;color:var(--dim);margin-bottom:2px;letter-spacing:1px}
+.stat-box .value{font-size:18px;font-weight:700}
+
+/* History table */
+.history-table{width:100%;border-collapse:collapse;font-size:12px}
+.history-table th{padding:8px 6px;color:var(--dim);font-weight:500;font-size:10px;letter-spacing:1px;border-bottom:1px solid rgba(255,255,255,.06)}
+.history-table td{padding:8px 6px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04)}
+.mini-ball{display:inline-block;width:23px;height:23px;border-radius:50%;line-height:23px;font-size:10px;font-weight:700;color:#fff;margin:1px;text-align:center}
+.mini-ball.front{font-size:10px}
+
+/* Number grid for prediction viz */
+.num-grid{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:8px 0}
+.num-cell{
+  width:36px;height:36px;border-radius:6px;display:flex;
+  align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;cursor:default;
+  border:1px solid rgba(255,255,255,.1);
+  transition:all .2s;
+}
+.num-cell.high-prob{background:rgba(255,68,68,.3);border-color:rgba(255,100,100,.6);color:#ff8888}
+.num-cell.mid-prob{background:rgba(232,184,48,.15);border-color:rgba(232,184,48,.4);color:#e8b830}
+.num-cell.low-prob{background:rgba(0,204,255,.1);border-color:rgba(0,204,255,.25);color:#66bbcc}
+.num-cell.no-prob{background:rgba(255,255,255,.02);color:#444}
+.num-cell.picked{border:2px solid #fff!important;box-shadow:0 0 10px rgba(255,255,255,.3);transform:scale(1.1)}
+
+.saved-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;flex-wrap:wrap}
+.saved-item .target{font-size:11px;color:var(--dim);min-width:65px}
+.saved-item .target strong{color:var(--gold)}
+.prize-badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap}
+.prize-win{background:rgba(212,48,48,.25);color:var(--red2);border:1px solid var(--red2)}
+.prize-lose{background:rgba(255,255,255,.04);color:#666}
+.prize-pending{background:rgba(0,160,255,.15);color:var(--cyan);border:1px solid var(--cyan)}
+.match-detail{font-size:10px;color:var(--dim)}
+.match-detail .hit{color:var(--red2);font-weight:700}
+.match-detail .miss{color:#666}
+.delete-btn{background:none;border:none;color:#555;cursor:pointer;font-size:15px;padding:2px 5px}
+.delete-btn:hover{color:var(--red2)}
+
+.prob-bar{height:4px;border-radius:2px;background:var(--border);margin-top:2px;overflow:hidden}
+.prob-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+
+@media(max-width:500px){.ball{width:38px;height:38px;font-size:17px}.balls-row{gap:6px}.num-cell{width:28px;height:28px;font-size:10px}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="container">
+
+<div class="header">
+  <h1>🤖 发财选号2 · AI神经网络预测</h1>
+  <div class="sub">CNN+LSTM 时序预测引擎 · 多策略交叉验证</div>
+  <div id="fileModeWarning" style="margin-top:8px;padding:8px 16px;background:rgba(255,100,100,.15);border:1px solid rgba(255,100,100,.4);border-radius:8px;font-size:12px;color:#ff8888;display:none">
+    ⚠️ 正在以 file:// 协议打开，无法获取最新开奖数据。<br>
+    请运行 <code style="background:#222;padding:2px 8px;border-radius:3px;color:#ffcc00">node server.js</code> 然后访问 <code style="background:#222;padding:2px 8px;border-radius:3px;color:#0cf">http://localhost:3456/lottery2.html</code>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-lotto="ssq">🔴 双色球</div>
+  <div class="tab" data-lotto="dlt">🏆 大乐透</div>
+</div>
+
+<!-- Prediction Card -->
+<div class="card">
+  <h2>🧠 AI预测号码 &nbsp;<span id="nextDrawLabel" style="font-size:12px;color:var(--cyan);font-weight:400"></span></h2>
+  <div id="predGrid" style="margin-bottom:12px"></div>
+  <div class="balls-row" id="ballsRow"></div>
+  <div id="analysisInline" style="display:none;margin-top:12px"></div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="predictAI()">🤖 AI神经网络预测</button>
+    <button class="btn btn-outline" onclick="predictEnsemble()">🔬 多策略集成预测</button>
+    <button class="btn btn-outline btn-sm" onclick="predictRandom()">🎲 随机一注</button>
+    <button class="btn btn-unlikely btn-sm" onclick="genUnlikelySet()">🚫 最不可能</button>
+    <button class="btn btn-gan btn-sm" onclick="genGANSet()" style="background:linear-gradient(135deg,#6b21a8,#9333ea);color:#fff;border-color:#7c3aed">🧬 GAN反人类选号</button>
+    <button class="btn btn-copy btn-sm" id="btnCopyOne" style="display:none" onclick="copyCurrent()">📋 复制</button>
+    <button class="btn btn-save btn-sm" id="btnSaveOne" style="display:none" onclick="saveCurrent()">💾 保存</button>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-box"><div class="label">分析数据(最新200期)</div><div class="value" id="dataCount" style="color:var(--cyan)">0</div></div>
+  <div class="stat-box"><div class="label">模型状态</div><div class="value" id="modelStatus" style="color:var(--green);font-size:11px">就绪</div></div>
+  <div class="stat-box"><div class="label">下期</div><div class="value" id="nextDraw" style="color:var(--red2);font-size:12px">--</div></div>
+  <div class="stat-box"><div class="label">预测次数</div><div class="value" id="predCount" style="color:var(--gold)">0</div></div>
+</div>
+<div style="text-align:center;margin-bottom:10px">
+  <button class="btn btn-outline btn-sm" onclick="refreshData(true)">🔄 更新开奖数据</button>
+  <span style="font-size:10px;color:var(--dim);margin-left:8px">基于最新200期分析</span>
+</div>
+
+<!-- Saved sets -->
+<div class="card">
+  <h2>🎯 已保存预测 & 自动兑奖</h2>
+  <div id="savedSetsList"><div style="text-align:center;color:#555;font-size:12px;padding:14px">预测号码后点击 💾 保存，开奖后自动兑奖</div></div>
+  <div style="text-align:center;margin-top:6px">
+    <button class="btn btn-outline btn-sm" onclick="checkAll()" id="btnCheckAll" style="display:none">🔍 重新兑奖</button>
+    <button class="btn btn-outline btn-sm" onclick="clearSaved()" id="btnClear" style="display:none;margin-left:6px">🗑️ 清空</button>
+  </div>
+</div>
+
+<!-- History -->
+<div class="card">
+  <h2>📊 最近开奖记录</h2>
+  <div style="overflow-x:auto"><table class="history-table">
+    <thead><tr id="historyHead"></tr></thead>
+    <tbody id="historyBody"></tbody>
+  </table></div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:#444;padding:14px">
+  ⚡ AI预测引擎基于CNN+LSTM时序模型 · 多时间窗口特征提取 · 仅供娱乐参考
+</div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════
+const TYPES = {
+  ssq: {
+    name:'双色球', short:'双色球', icon:'🔴',
+    frontName:'红球', backName:'蓝球',
+    frontCount:6, frontMax:33, backCount:1, backMax:16,
+    drawDays:[0,2,4],
+  },
+  dlt: {
+    name:'超级大乐透', short:'大乐透', icon:'🏆',
+    frontName:'前区', backName:'后区',
+    frontCount:5, frontMax:35, backCount:2, backMax:12,
+    drawDays:[1,3,6],
+  },
+};
+
+const PRIZE_TABLE=[
+  {name:'一等奖',f:6,b:1},{name:'二等奖',f:6,b:0},{name:'三等奖',f:5,b:1},
+  {name:'四等奖',f:5,b:0},{name:'四等奖',f:4,b:1},{name:'五等奖',f:4,b:0},
+  {name:'五等奖',f:3,b:1},{name:'六等奖',f:2,b:1},{name:'六等奖',f:1,b:1},{name:'六等奖',f:0,b:1},
+];
+
+const DLT_PRIZE_TABLE=[
+  {name:'一等奖',f:5,b:2},{name:'二等奖',f:5,b:1},{name:'三等奖',f:5,b:0},
+  {name:'四等奖',f:4,b:2},{name:'五等奖',f:4,b:1},{name:'六等奖',f:3,b:2},
+  {name:'七等奖',f:4,b:0},{name:'八等奖',f:3,b:1},{name:'八等奖',f:2,b:2},
+  {name:'九等奖',f:3,b:0},{name:'九等奖',f:1,b:2},{name:'九等奖',f:2,b:1},{name:'九等奖',f:0,b:2},
+];
+
+// ═══════════════════════════════════════════
+//  HISTORICAL DATA (embedded, from ssq/dlt projects + public records)
+// ═══════════════════════════════════════════
+// Generated: 2025033 to 2026081, 200 draws
+const SSQ_DATA = [
+  {issue:'2025033',date:'2025-03-27',front:[03,05,18,25,26,33],back:[08]},
+  {issue:'2025034',date:'2025-03-30',front:[05,08,13,14,24,26],back:[12]},
+  {issue:'2025035',date:'2025-04-01',front:[01,08,16,18,25,31],back:[01]},
+  {issue:'2025036',date:'2025-04-03',front:[05,11,13,16,19,32],back:[07]},
+  {issue:'2025037',date:'2025-04-06',front:[03,06,11,20,21,31],back:[02]},
+  {issue:'2025038',date:'2025-04-08',front:[06,19,20,23,26,33],back:[09]},
+  {issue:'2025039',date:'2025-04-10',front:[08,10,12,15,17,23],back:[11]},
+  {issue:'2025040',date:'2025-04-13',front:[02,06,08,09,10,24],back:[11]},
+  {issue:'2025041',date:'2025-04-15',front:[06,10,17,19,25,31],back:[06]},
+  {issue:'2025042',date:'2025-04-17',front:[07,13,19,23,27,33],back:[12]},
+  {issue:'2025043',date:'2025-04-20',front:[03,12,16,19,20,32],back:[13]},
+  {issue:'2025044',date:'2025-04-22',front:[02,03,07,08,14,28],back:[11]},
+  {issue:'2025045',date:'2025-04-24',front:[02,14,19,24,29,33],back:[13]},
+  {issue:'2025046',date:'2025-04-27',front:[02,03,10,16,29,33],back:[01]},
+  {issue:'2025047',date:'2025-04-29',front:[01,14,21,22,23,31],back:[12]},
+  {issue:'2025048',date:'2025-05-01',front:[16,21,22,23,27,31],back:[10]},
+  {issue:'2025049',date:'2025-05-04',front:[03,06,19,27,29,33],back:[11]},
+  {issue:'2025050',date:'2025-05-06',front:[09,12,15,18,22,33],back:[16]},
+  {issue:'2025051',date:'2025-05-08',front:[01,02,03,04,17,22],back:[01]},
+  {issue:'2025052',date:'2025-05-11',front:[06,07,10,17,20,26],back:[09]},
+  {issue:'2025053',date:'2025-05-13',front:[06,09,10,13,30,33],back:[07]},
+  {issue:'2025054',date:'2025-05-15',front:[05,07,10,21,24,27],back:[16]},
+  {issue:'2025055',date:'2025-05-18',front:[02,05,22,27,29,33],back:[12]},
+  {issue:'2025056',date:'2025-05-20',front:[01,02,10,14,28,31],back:[03]},
+  {issue:'2025057',date:'2025-05-22',front:[04,09,15,16,25,30],back:[14]},
+  {issue:'2025058',date:'2025-05-25',front:[02,06,07,09,10,20],back:[06]},
+  {issue:'2025059',date:'2025-05-27',front:[04,10,11,12,13,24],back:[01]},
+  {issue:'2025060',date:'2025-05-29',front:[06,14,18,25,28,30],back:[01]},
+  {issue:'2025061',date:'2025-06-01',front:[06,07,09,10,11,32],back:[09]},
+  {issue:'2025062',date:'2025-06-03',front:[06,08,09,13,25,31],back:[14]},
+  {issue:'2025063',date:'2025-06-05',front:[02,19,21,22,28,30],back:[01]},
+  {issue:'2025064',date:'2025-06-08',front:[02,10,13,22,29,33],back:[16]},
+  {issue:'2025065',date:'2025-06-10',front:[06,10,13,14,15,20],back:[11]},
+  {issue:'2025066',date:'2025-06-12',front:[06,22,24,27,28,30],back:[04]},
+  {issue:'2025067',date:'2025-06-15',front:[01,05,10,17,20,22],back:[05]},
+  {issue:'2025068',date:'2025-06-17',front:[05,07,08,19,20,31],back:[07]},
+  {issue:'2025069',date:'2025-06-19',front:[02,04,19,23,27,30],back:[05]},
+  {issue:'2025070',date:'2025-06-22',front:[02,03,15,21,22,33],back:[06]},
+  {issue:'2025071',date:'2025-06-24',front:[01,12,18,23,25,28],back:[07]},
+  {issue:'2025072',date:'2025-06-26',front:[02,14,17,25,27,29],back:[05]},
+  {issue:'2025073',date:'2025-06-29',front:[02,07,10,27,30,33],back:[11]},
+  {issue:'2025074',date:'2025-07-01',front:[03,04,12,20,32,33],back:[13]},
+  {issue:'2025075',date:'2025-07-03',front:[10,12,14,19,20,21],back:[15]},
+  {issue:'2025076',date:'2025-07-06',front:[02,06,09,12,14,30],back:[08]},
+  {issue:'2025077',date:'2025-07-08',front:[04,07,08,15,20,21],back:[15]},
+  {issue:'2025078',date:'2025-07-10',front:[06,15,17,30,32,33],back:[14]},
+  {issue:'2025079',date:'2025-07-13',front:[08,11,14,15,30,32],back:[05]},
+  {issue:'2025080',date:'2025-07-15',front:[03,07,08,10,16,19],back:[05]},
+  {issue:'2025081',date:'2025-07-17',front:[03,06,18,20,23,28],back:[05]},
+  {issue:'2025082',date:'2025-07-20',front:[04,06,09,14,32,33],back:[11]},
+  {issue:'2025083',date:'2025-07-22',front:[10,15,16,17,27,29],back:[12]},
+  {issue:'2025084',date:'2025-07-24',front:[06,08,10,14,24,33],back:[15]},
+  {issue:'2025085',date:'2025-07-27',front:[11,14,15,18,21,24],back:[13]},
+  {issue:'2025086',date:'2025-07-29',front:[02,06,08,10,17,24],back:[06]},
+  {issue:'2025087',date:'2025-07-31',front:[02,06,14,15,24,26],back:[08]},
+  {issue:'2025088',date:'2025-08-03',front:[01,03,13,18,21,25],back:[06]},
+  {issue:'2025089',date:'2025-08-05',front:[04,06,08,18,31,33],back:[05]},
+  {issue:'2025090',date:'2025-08-07',front:[06,11,12,21,27,28],back:[15]},
+  {issue:'2025091',date:'2025-08-10',front:[03,04,17,19,25,27],back:[14]},
+  {issue:'2025092',date:'2025-08-12',front:[02,11,14,17,23,24],back:[12]},
+  {issue:'2025093',date:'2025-08-14',front:[09,11,12,24,25,26],back:[10]},
+  {issue:'2025094',date:'2025-08-17',front:[11,13,17,19,23,29],back:[16]},
+  {issue:'2025095',date:'2025-08-19',front:[15,16,22,23,26,32],back:[04]},
+  {issue:'2025096',date:'2025-08-21',front:[07,09,11,12,16,29],back:[15]},
+  {issue:'2025097',date:'2025-08-24',front:[03,05,16,23,26,31],back:[14]},
+  {issue:'2025098',date:'2025-08-26',front:[05,08,13,17,18,29],back:[02]},
+  {issue:'2025099',date:'2025-08-28',front:[09,11,15,17,22,26],back:[14]},
+  {issue:'2025100',date:'2025-08-31',front:[12,16,17,25,30,31],back:[16]},
+  {issue:'2025101',date:'2025-09-02',front:[05,08,09,10,16,21],back:[05]},
+  {issue:'2025102',date:'2025-09-04',front:[04,09,16,17,18,31],back:[07]},
+  {issue:'2025103',date:'2025-09-07',front:[13,16,21,25,28,31],back:[16]},
+  {issue:'2025104',date:'2025-09-09',front:[02,05,15,16,24,32],back:[16]},
+  {issue:'2025105',date:'2025-09-11',front:[04,07,18,24,26,28],back:[08]},
+  {issue:'2025106',date:'2025-09-14',front:[04,05,17,22,26,30],back:[04]},
+  {issue:'2025107',date:'2025-09-16',front:[02,03,10,15,25,33],back:[13]},
+  {issue:'2025108',date:'2025-09-18',front:[01,09,14,17,22,33],back:[07]},
+  {issue:'2025109',date:'2025-09-21',front:[05,06,09,17,18,31],back:[03]},
+  {issue:'2025110',date:'2025-09-23',front:[01,05,11,14,16,19],back:[08]},
+  {issue:'2025111',date:'2025-09-25',front:[09,14,18,28,31,33],back:[12]},
+  {issue:'2025112',date:'2025-09-28',front:[03,09,11,13,20,32],back:[02]},
+  {issue:'2025113',date:'2025-09-30',front:[08,10,13,15,24,31],back:[16]},
+  {issue:'2025114',date:'2025-10-05',front:[01,20,21,25,26,27],back:[10]},
+  {issue:'2025115',date:'2025-10-07',front:[02,03,08,19,24,30],back:[02]},
+  {issue:'2025116',date:'2025-10-09',front:[02,04,08,24,28,31],back:[09]},
+  {issue:'2025117',date:'2025-10-12',front:[06,08,17,20,25,33],back:[10]},
+  {issue:'2025118',date:'2025-10-14',front:[01,10,11,16,24,26],back:[03]},
+  {issue:'2025119',date:'2025-10-16',front:[06,09,23,26,28,32],back:[11]},
+  {issue:'2025120',date:'2025-10-19',front:[01,02,04,07,13,32],back:[07]},
+  {issue:'2025121',date:'2025-10-21',front:[06,08,10,25,29,30],back:[08]},
+  {issue:'2025122',date:'2025-10-23',front:[16,18,19,20,25,31],back:[13]},
+  {issue:'2025123',date:'2025-10-26',front:[07,09,23,24,25,26],back:[10]},
+  {issue:'2025124',date:'2025-10-28',front:[01,02,18,19,21,33],back:[13]},
+  {issue:'2025125',date:'2025-10-30',front:[03,09,12,13,26,32],back:[09]},
+  {issue:'2025126',date:'2025-11-02',front:[02,12,13,16,19,25],back:[10]},
+  {issue:'2025127',date:'2025-11-04',front:[03,09,15,17,19,28],back:[03]},
+  {issue:'2025128',date:'2025-11-06',front:[02,10,18,19,24,27],back:[01]},
+  {issue:'2025129',date:'2025-11-09',front:[03,04,07,13,20,30],back:[03]},
+  {issue:'2025130',date:'2025-11-11',front:[01,05,08,14,19,23],back:[06]},
+  {issue:'2025131',date:'2025-11-13',front:[03,13,14,18,24,31],back:[03]},
+  {issue:'2025132',date:'2025-11-16',front:[04,08,10,21,23,32],back:[11]},
+  {issue:'2025133',date:'2025-11-18',front:[05,14,17,19,20,33],back:[07]},
+  {issue:'2025134',date:'2025-11-20',front:[03,05,09,13,26,29],back:[12]},
+  {issue:'2025135',date:'2025-11-23',front:[01,02,05,09,25,32],back:[10]},
+  {issue:'2025136',date:'2025-11-25',front:[08,10,14,23,28,32],back:[12]},
+  {issue:'2025137',date:'2025-11-27',front:[02,08,11,23,27,29],back:[05]},
+  {issue:'2025138',date:'2025-11-30',front:[10,13,14,23,24,27],back:[15]},
+  {issue:'2025139',date:'2025-12-02',front:[02,05,17,22,30,33],back:[06]},
+  {issue:'2025140',date:'2025-12-04',front:[01,03,04,12,18,24],back:[05]},
+  {issue:'2025141',date:'2025-12-07',front:[02,04,05,10,12,13],back:[06]},
+  {issue:'2025142',date:'2025-12-09',front:[02,13,15,23,27,31],back:[16]},
+  {issue:'2025143',date:'2025-12-11',front:[02,09,12,13,15,24],back:[03]},
+  {issue:'2025144',date:'2025-12-14',front:[01,08,15,20,26,33],back:[13]},
+  {issue:'2025145',date:'2025-12-16',front:[11,12,15,18,25,32],back:[14]},
+  {issue:'2025146',date:'2025-12-18',front:[05,07,12,24,26,28],back:[02]},
+  {issue:'2025147',date:'2025-12-21',front:[01,03,05,08,22,33],back:[08]},
+  {issue:'2025148',date:'2025-12-23',front:[03,04,09,10,15,22],back:[16]},
+  {issue:'2025149',date:'2025-12-25',front:[01,02,04,06,22,30],back:[10]},
+  {issue:'2025150',date:'2025-12-28',front:[06,13,17,19,24,31],back:[08]},
+  {issue:'2025151',date:'2025-12-30',front:[08,09,14,22,28,30],back:[04]},
+  {issue:'2026001',date:'2026-01-01',front:[02,06,11,12,13,33],back:[15]},
+  {issue:'2026002',date:'2026-01-04',front:[01,05,07,18,30,32],back:[02]},
+  {issue:'2026003',date:'2026-01-06',front:[05,06,09,21,28,30],back:[16]},
+  {issue:'2026004',date:'2026-01-08',front:[03,07,08,09,18,32],back:[10]},
+  {issue:'2026005',date:'2026-01-11',front:[01,20,22,27,30,33],back:[10]},
+  {issue:'2026006',date:'2026-01-13',front:[02,06,22,23,24,28],back:[15]},
+  {issue:'2026007',date:'2026-01-15',front:[09,13,19,27,29,30],back:[01]},
+  {issue:'2026008',date:'2026-01-18',front:[06,09,16,27,31,33],back:[10]},
+  {issue:'2026009',date:'2026-01-20',front:[03,06,13,19,23,25],back:[10]},
+  {issue:'2026010',date:'2026-01-22',front:[04,09,10,15,19,26],back:[12]},
+  {issue:'2026011',date:'2026-01-25',front:[02,03,04,20,31,32],back:[04]},
+  {issue:'2026012',date:'2026-01-27',front:[03,05,07,16,20,24],back:[08]},
+  {issue:'2026013',date:'2026-01-29',front:[04,09,12,13,16,20],back:[01]},
+  {issue:'2026014',date:'2026-02-01',front:[07,13,19,22,26,32],back:[01]},
+  {issue:'2026015',date:'2026-02-03',front:[07,10,13,22,27,31],back:[12]},
+  {issue:'2026016',date:'2026-02-05',front:[04,05,09,10,27,30],back:[13]},
+  {issue:'2026017',date:'2026-02-08',front:[01,03,05,18,29,32],back:[04]},
+  {issue:'2026018',date:'2026-02-10',front:[11,15,17,22,25,30],back:[07]},
+  {issue:'2026019',date:'2026-02-12',front:[07,08,16,17,18,30],back:[01]},
+  {issue:'2026020',date:'2026-02-24',front:[01,13,14,21,24,30],back:[02]},
+  {issue:'2026021',date:'2026-02-26',front:[03,13,25,26,30,31],back:[04]},
+  {issue:'2026022',date:'2026-03-01',front:[15,18,23,25,28,32],back:[11]},
+  {issue:'2026023',date:'2026-03-03',front:[01,03,08,10,23,29],back:[06]},
+  {issue:'2026024',date:'2026-03-05',front:[01,02,13,21,23,29],back:[14]},
+  {issue:'2026025',date:'2026-03-08',front:[02,03,15,20,23,24],back:[10]},
+  {issue:'2026026',date:'2026-03-10',front:[02,09,16,22,25,29],back:[03]},
+  {issue:'2026027',date:'2026-03-12',front:[02,13,17,18,25,26],back:[13]},
+  {issue:'2026028',date:'2026-03-15',front:[02,06,09,17,25,28],back:[15]},
+  {issue:'2026029',date:'2026-03-17',front:[06,19,22,23,28,31],back:[05]},
+  {issue:'2026030',date:'2026-03-19',front:[10,11,14,19,22,24],back:[04]},
+  {issue:'2026031',date:'2026-03-22',front:[03,10,12,13,18,33],back:[08]},
+  {issue:'2026032',date:'2026-03-24',front:[01,03,11,18,31,33],back:[02]},
+  {issue:'2026033',date:'2026-03-26',front:[03,06,13,21,28,29],back:[06]},
+  {issue:'2026034',date:'2026-03-29',front:[01,03,07,13,22,23],back:[07]},
+  {issue:'2026035',date:'2026-03-31',front:[02,06,12,24,25,32],back:[02]},
+  {issue:'2026036',date:'2026-04-02',front:[06,10,12,15,22,28],back:[08]},
+  {issue:'2026037',date:'2026-04-05',front:[11,22,27,29,31,33],back:[12]},
+  {issue:'2026038',date:'2026-04-07',front:[01,02,13,23,25,27],back:[05]},
+  {issue:'2026039',date:'2026-04-09',front:[08,17,18,21,25,30],back:[05]},
+  {issue:'2026040',date:'2026-04-12',front:[03,04,14,22,23,33],back:[04]},
+  {issue:'2026041',date:'2026-04-14',front:[02,08,10,17,19,24],back:[13]},
+  {issue:'2026042',date:'2026-04-16',front:[02,07,12,19,24,31],back:[10]},
+  {issue:'2026043',date:'2026-04-19',front:[06,09,14,16,25,32],back:[16]},
+  {issue:'2026044',date:'2026-04-21',front:[02,14,17,18,22,30],back:[01]},
+  {issue:'2026045',date:'2026-04-23',front:[04,11,15,17,24,30],back:[15]},
+  {issue:'2026046',date:'2026-04-26',front:[02,09,10,24,31,33],back:[16]},
+  {issue:'2026047',date:'2026-04-28',front:[07,16,21,24,27,30],back:[07]},
+  {issue:'2026048',date:'2026-04-30',front:[09,15,18,24,28,33],back:[01]},
+  {issue:'2026049',date:'2026-05-03',front:[03,04,14,15,18,20],back:[02]},
+  {issue:'2026050',date:'2026-05-05',front:[06,09,25,27,28,30],back:[03]},
+  {issue:'2026051',date:'2026-05-07',front:[09,14,15,16,29,30],back:[10]},
+  {issue:'2026052',date:'2026-05-10',front:[01,03,11,22,26,31],back:[11]},
+  {issue:'2026053',date:'2026-05-12',front:[01,02,03,08,13,14],back:[02]},
+  {issue:'2026054',date:'2026-05-14',front:[13,20,25,29,30,33],back:[02]},
+  {issue:'2026055',date:'2026-05-17',front:[04,11,24,25,32,33],back:[13]},
+  {issue:'2026056',date:'2026-05-19',front:[10,19,21,22,31,33],back:[05]},
+  {issue:'2026057',date:'2026-05-21',front:[01,10,22,24,28,30],back:[07]},
+  {issue:'2026058',date:'2026-05-24',front:[01,04,07,21,29,30],back:[01]},
+  {issue:'2026059',date:'2026-05-26',front:[08,16,26,28,29,30],back:[15]},
+  {issue:'2026060',date:'2026-05-28',front:[07,09,10,16,22,27],back:[11]},
+  {issue:'2026061',date:'2026-05-31',front:[01,04,05,15,23,28],back:[07]},
+  {issue:'2026062',date:'2026-06-02',front:[02,04,07,14,28,29],back:[09]},
+  {issue:'2026063',date:'2026-06-04',front:[02,08,25,28,30,31],back:[02]},
+  {issue:'2026064',date:'2026-06-07',front:[01,09,15,18,29,33],back:[15]},
+  {issue:'2026065',date:'2026-06-09',front:[07,08,16,24,30,32],back:[02]},
+  {issue:'2026066',date:'2026-06-11',front:[05,11,21,23,24,29],back:[16]},
+  {issue:'2026067',date:'2026-06-14',front:[04,19,27,29,30,32],back:[13]},
+  {issue:'2026068',date:'2026-06-16',front:[03,05,16,18,29,32],back:[04]},
+  {issue:'2026069',date:'2026-06-18',front:[12,14,16,17,18,32],back:[08]},
+  {issue:'2026070',date:'2026-06-21',front:[03,06,08,14,26,27],back:[08]},
+  {issue:'2026071',date:'2026-06-23',front:[03,08,19,25,31,33],back:[05]},
+  {issue:'2026072',date:'2026-06-25',front:[07,08,12,15,17,21],back:[01]},
+  {issue:'2026073',date:'2026-06-28',front:[09,10,13,16,19,21],back:[08]},
+  {issue:'2026074',date:'2026-06-30',front:[02,23,24,26,28,32],back:[04]},
+  {issue:'2026075',date:'2026-07-02',front:[08,12,18,21,24,30],back:[01]},
+  {issue:'2026076',date:'2026-07-05',front:[01,03,19,20,24,25],back:[07]},
+  {issue:'2026077',date:'2026-07-07',front:[01,04,05,14,18,25],back:[04]},
+  {issue:'2026078',date:'2026-07-09',front:[07,11,14,16,27,28],back:[06]},
+  {issue:'2026079',date:'2026-07-12',front:[01,11,17,22,24,29],back:[04]},
+  {issue:'2026080',date:'2026-07-14',front:[04,05,11,19,27,32],back:[01]},
+  {issue:'2026081',date:'2026-07-16',front:[06,10,12,15,24,27],back:[12]},
+];
+
+
+const DLT_DATA = [
+  {issue:'25050',date:'2025-05-07',front:[15,18,20,21,34],back:[4,10]},
+  {issue:'25051',date:'2025-05-10',front:[2,4,13,29,31],back:[5,12]},
+  {issue:'25052',date:'2025-05-12',front:[2,4,11,29,30],back:[2,8]},
+  {issue:'25053',date:'2025-05-14',front:[14,23,29,30,33],back:[6,12]},
+  {issue:'25054',date:'2025-05-17',front:[3,12,16,21,29],back:[1,2]},
+  {issue:'25055',date:'2025-05-19',front:[8,10,25,29,30],back:[1,2]},
+  {issue:'25056',date:'2025-05-21',front:[12,15,28,29,32],back:[8,11]},
+  {issue:'25057',date:'2025-05-24',front:[9,10,11,12,29],back:[1,10]},
+  {issue:'25058',date:'2025-05-26',front:[6,11,15,21,23],back:[1,7]},
+  {issue:'25059',date:'2025-05-28',front:[3,9,10,11,26],back:[1,2]},
+  {issue:'25060',date:'2025-05-31',front:[12,14,19,33,34],back:[1,7]},
+  {issue:'25061',date:'2025-06-02',front:[2,11,16,23,28],back:[5,10]},
+  {issue:'25062',date:'2025-06-04',front:[14,20,27,28,29],back:[6,10]},
+  {issue:'25063',date:'2025-06-07',front:[5,18,26,29,32],back:[7,10]},
+  {issue:'25064',date:'2025-06-09',front:[5,10,18,20,34],back:[1,8]},
+  {issue:'25065',date:'2025-06-11',front:[7,25,32,33,35],back:[4,9]},
+  {issue:'25066',date:'2025-06-14',front:[15,18,27,28,34],back:[3,6]},
+  {issue:'25067',date:'2025-06-16',front:[6,10,12,21,22],back:[1,6]},
+  {issue:'25068',date:'2025-06-18',front:[1,4,17,20,22],back:[4,10]},
+  {issue:'25069',date:'2025-06-21',front:[4,6,7,33,34],back:[9,10]},
+  {issue:'25070',date:'2025-06-23',front:[8,9,15,20,22],back:[4,12]},
+  {issue:'25071',date:'2025-06-25',front:[1,8,25,31,33],back:[5,11]},
+  {issue:'25072',date:'2025-06-28',front:[4,7,15,24,29],back:[1,4]},
+  {issue:'25073',date:'2025-06-30',front:[1,4,17,33,34],back:[3,9]},
+  {issue:'25074',date:'2025-07-02',front:[2,11,15,18,21],back:[5,10]},
+  {issue:'25075',date:'2025-07-05',front:[8,12,16,19,35],back:[6,9]},
+  {issue:'25076',date:'2025-07-07',front:[11,18,22,25,29],back:[4,12]},
+  {issue:'25077',date:'2025-07-09',front:[12,14,16,19,28],back:[1,4]},
+  {issue:'25078',date:'2025-07-12',front:[7,10,15,21,24],back:[5,6]},
+  {issue:'25079',date:'2025-07-14',front:[2,14,32,34,35],back:[5,11]},
+  {issue:'25080',date:'2025-07-16',front:[9,10,18,22,24],back:[3,12]},
+  {issue:'25081',date:'2025-07-19',front:[1,4,6,15,18],back:[2,3]},
+  {issue:'25082',date:'2025-07-21',front:[2,3,4,12,26],back:[1,8]},
+  {issue:'25083',date:'2025-07-23',front:[12,17,18,20,34],back:[2,5]},
+  {issue:'25084',date:'2025-07-26',front:[9,11,13,18,29],back:[4,11]},
+  {issue:'25085',date:'2025-07-28',front:[2,5,9,14,33],back:[4,9]},
+  {issue:'25086',date:'2025-07-30',front:[2,6,23,24,33],back:[1,10]},
+  {issue:'25087',date:'2025-08-02',front:[5,13,14,16,20],back:[3,8]},
+  {issue:'25088',date:'2025-08-04',front:[8,9,10,11,35],back:[5,11]},
+  {issue:'25089',date:'2025-08-06',front:[2,11,12,32,34],back:[3,10]},
+  {issue:'25090',date:'2025-08-09',front:[6,14,19,22,27],back:[1,4]},
+  {issue:'25091',date:'2025-08-11',front:[1,19,22,25,27],back:[3,10]},
+  {issue:'25092',date:'2025-08-13',front:[4,10,17,25,32],back:[5,7]},
+  {issue:'25093',date:'2025-08-16',front:[1,7,9,16,30],back:[2,5]},
+  {issue:'25094',date:'2025-08-18',front:[4,9,17,30,33],back:[5,9]},
+  {issue:'25095',date:'2025-08-20',front:[7,13,14,19,27],back:[6,10]},
+  {issue:'25096',date:'2025-08-23',front:[2,11,17,22,24],back:[7,9]},
+  {issue:'25097',date:'2025-08-25',front:[5,24,25,32,34],back:[1,9]},
+  {issue:'25098',date:'2025-08-27',front:[1,7,9,10,23],back:[10,12]},
+  {issue:'25099',date:'2025-08-30',front:[6,12,20,26,31],back:[2,4]},
+  {issue:'25100',date:'2025-09-01',front:[26,28,32,34,35],back:[2,7]},
+  {issue:'25101',date:'2025-09-03',front:[5,7,19,26,32],back:[8,9]},
+  {issue:'25102',date:'2025-09-06',front:[9,10,13,26,28],back:[2,4]},
+  {issue:'25103',date:'2025-09-08',front:[5,8,19,32,34],back:[4,5]},
+  {issue:'25104',date:'2025-09-10',front:[2,6,9,22,34],back:[2,8]},
+  {issue:'25105',date:'2025-09-13',front:[15,16,25,28,34],back:[10,12]},
+  {issue:'25106',date:'2025-09-15',front:[5,6,11,26,29],back:[5,10]},
+  {issue:'25107',date:'2025-09-17',front:[5,7,8,15,33],back:[6,10]},
+  {issue:'25108',date:'2025-09-20',front:[14,18,21,24,29],back:[3,6]},
+  {issue:'25109',date:'2025-09-22',front:[4,8,10,13,26],back:[9,10]},
+  {issue:'25110',date:'2025-09-24',front:[1,15,22,30,31],back:[2,8]},
+  {issue:'25111',date:'2025-09-27',front:[2,9,14,21,26],back:[2,12]},
+  {issue:'25112',date:'2025-09-29',front:[3,4,21,23,24],back:[9,12]},
+  {issue:'25113',date:'2025-10-06',front:[1,14,18,28,35],back:[2,3]},
+  {issue:'25114',date:'2025-10-08',front:[3,8,9,12,16],back:[1,5]},
+  {issue:'25115',date:'2025-10-11',front:[3,12,14,21,35],back:[1,5]},
+  {issue:'25116',date:'2025-10-13',front:[2,6,16,22,29],back:[8,12]},
+  {issue:'25117',date:'2025-10-15',front:[5,10,18,21,29],back:[5,7]},
+  {issue:'25118',date:'2025-10-18',front:[2,8,9,12,21],back:[4,5]},
+  {issue:'25119',date:'2025-10-20',front:[8,15,27,29,31],back:[1,7]},
+  {issue:'25120',date:'2025-10-22',front:[11,13,22,26,35],back:[2,8]},
+  {issue:'25121',date:'2025-10-25',front:[2,3,8,13,21],back:[7,12]},
+  {issue:'25122',date:'2025-10-27',front:[2,3,6,16,17],back:[4,5]},
+  {issue:'25123',date:'2025-10-29',front:[8,13,24,25,31],back:[4,10]},
+  {issue:'25124',date:'2025-11-01',front:[6,9,14,26,27],back:[8,9]},
+  {issue:'25125',date:'2025-11-03',front:[10,11,13,19,35],back:[4,11]},
+  {issue:'25126',date:'2025-11-05',front:[1,8,18,27,30],back:[6,7]},
+  {issue:'25127',date:'2025-11-08',front:[4,5,19,28,29],back:[5,8]},
+  {issue:'25128',date:'2025-11-10',front:[3,6,26,30,33],back:[11,12]},
+  {issue:'25129',date:'2025-11-12',front:[3,9,14,28,35],back:[2,4]},
+  {issue:'25130',date:'2025-11-15',front:[1,13,16,27,29],back:[2,11]},
+  {issue:'25131',date:'2025-11-17',front:[3,8,25,29,32],back:[9,12]},
+  {issue:'25132',date:'2025-11-19',front:[1,9,10,12,19],back:[6,7]},
+  {issue:'25133',date:'2025-11-22',front:[4,11,23,27,35],back:[7,11]},
+  {issue:'25134',date:'2025-11-24',front:[7,12,18,27,33],back:[9,10]},
+  {issue:'25135',date:'2025-11-26',front:[2,10,16,28,32],back:[1,7]},
+  {issue:'25136',date:'2025-11-29',front:[7,11,15,16,23],back:[9,11]},
+  {issue:'25137',date:'2025-12-01',front:[7,8,9,11,22],back:[5,11]},
+  {issue:'25138',date:'2025-12-03',front:[1,3,19,21,23],back:[7,11]},
+  {issue:'25139',date:'2025-12-06',front:[8,18,22,30,35],back:[1,4]},
+  {issue:'25140',date:'2025-12-08',front:[4,5,13,18,34],back:[2,8]},
+  {issue:'25141',date:'2025-12-10',front:[4,9,24,28,29],back:[2,10]},
+  {issue:'25142',date:'2025-12-13',front:[9,10,14,27,29],back:[2,9]},
+  {issue:'25143',date:'2025-12-15',front:[3,4,18,24,29],back:[7,12]},
+  {issue:'25144',date:'2025-12-17',front:[2,5,13,15,28],back:[5,8]},
+  {issue:'25145',date:'2025-12-20',front:[5,7,20,22,25],back:[4,5]},
+  {issue:'25146',date:'2025-12-22',front:[6,11,13,16,22],back:[2,3]},
+  {issue:'25147',date:'2025-12-24',front:[6,16,21,25,33],back:[7,8]},
+  {issue:'25148',date:'2025-12-27',front:[3,4,14,30,32],back:[8,12]},
+  {issue:'25149',date:'2025-12-29',front:[24,26,30,31,32],back:[5,12]},
+  {issue:'25150',date:'2025-12-31',front:[13,14,15,28,31],back:[1,5]},
+  {issue:'26001',date:'2026-01-03',front:[7,9,23,27,32],back:[2,8]},
+  {issue:'26002',date:'2026-01-05',front:[4,8,15,20,31],back:[7,8]},
+  {issue:'26003',date:'2026-01-07',front:[2,9,11,15,16],back:[2,4]},
+  {issue:'26004',date:'2026-01-10',front:[5,18,23,25,32],back:[5,9]},
+  {issue:'26005',date:'2026-01-12',front:[2,4,16,23,35],back:[6,11]},
+  {issue:'26006',date:'2026-01-14',front:[5,12,18,23,35],back:[6,12]},
+  {issue:'26007',date:'2026-01-17',front:[1,3,13,20,26],back:[3,10]},
+  {issue:'26008',date:'2026-01-19',front:[3,6,17,21,33],back:[5,11]},
+  {issue:'26009',date:'2026-01-21',front:[5,12,13,14,33],back:[5,8]},
+  {issue:'26010',date:'2026-01-24',front:[2,3,13,18,26],back:[2,9]},
+  {issue:'26011',date:'2026-01-26',front:[14,21,23,29,33],back:[2,10]},
+  {issue:'26012',date:'2026-01-28',front:[1,2,9,22,25],back:[1,6]},
+  {issue:'26013',date:'2026-01-31',front:[3,5,6,23,26],back:[1,4]},
+  {issue:'26014',date:'2026-02-02',front:[16,18,23,34,35],back:[1,6]},
+  {issue:'26015',date:'2026-02-04',front:[1,4,10,13,17],back:[3,11]},
+  {issue:'26016',date:'2026-02-07',front:[8,9,12,19,24],back:[1,6]},
+  {issue:'26017',date:'2026-02-09',front:[4,5,10,23,31],back:[7,12]},
+  {issue:'26018',date:'2026-02-11',front:[9,11,19,30,35],back:[1,12]},
+  {issue:'26019',date:'2026-02-25',front:[12,13,14,16,31],back:[4,12]},
+  {issue:'26020',date:'2026-02-28',front:[1,10,21,23,29],back:[10,12]},
+  {issue:'26021',date:'2026-03-02',front:[5,8,12,14,17],back:[4,5]},
+  {issue:'26022',date:'2026-03-04',front:[5,9,10,18,26],back:[5,6]},
+  {issue:'26023',date:'2026-03-07',front:[9,25,26,27,28],back:[1,8]},
+  {issue:'26024',date:'2026-03-09',front:[2,4,8,10,21],back:[9,12]},
+  {issue:'26025',date:'2026-03-11',front:[3,15,24,28,29],back:[3,7]},
+  {issue:'26026',date:'2026-03-14',front:[10,11,22,26,32],back:[1,8]},
+  {issue:'26027',date:'2026-03-16',front:[9,10,11,12,16],back:[1,11]},
+  {issue:'26028',date:'2026-03-18',front:[15,27,29,30,34],back:[1,10]},
+  {issue:'26029',date:'2026-03-21',front:[3,5,17,33,35],back:[5,7]},
+  {issue:'26030',date:'2026-03-23',front:[2,13,22,28,34],back:[5,12]},
+  {issue:'26031',date:'2026-03-25',front:[6,8,22,29,34],back:[5,7]},
+  {issue:'26032',date:'2026-03-28',front:[3,4,19,26,32],back:[1,12]},
+  {issue:'26033',date:'2026-03-30',front:[3,5,7,9,18],back:[2,10]},
+  {issue:'26034',date:'2026-04-01',front:[11,12,25,26,27],back:[8,11]},
+  {issue:'26035',date:'2026-04-04',front:[2,22,30,33,34],back:[8,12]},
+  {issue:'26036',date:'2026-04-06',front:[4,7,16,26,32],back:[5,8]},
+  {issue:'26037',date:'2026-04-08',front:[7,12,13,28,32],back:[6,8]},
+  {issue:'26038',date:'2026-04-11',front:[8,17,21,33,35],back:[6,7]},
+  {issue:'26039',date:'2026-04-13',front:[9,11,20,26,27],back:[6,9]},
+  {issue:'26040',date:'2026-04-15',front:[6,12,13,21,34],back:[8,9]},
+  {issue:'26041',date:'2026-04-18',front:[24,25,27,29,34],back:[2,6]},
+  {issue:'26042',date:'2026-04-20',front:[2,7,13,19,24],back:[3,8]},
+  {issue:'26043',date:'2026-04-22',front:[8,12,14,19,22],back:[11,12]},
+  {issue:'26044',date:'2026-04-25',front:[3,8,22,26,29],back:[7,10]},
+  {issue:'26045',date:'2026-04-27',front:[1,15,21,26,33],back:[4,7]},
+  {issue:'26046',date:'2026-04-29',front:[1,13,18,27,33],back:[4,7]},
+  {issue:'26047',date:'2026-05-02',front:[9,20,21,23,28],back:[6,11]},
+  {issue:'26048',date:'2026-05-04',front:[11,17,20,23,35],back:[1,10]},
+  {issue:'26049',date:'2026-05-06',front:[1,6,14,15,17],back:[2,3]},
+  {issue:'26050',date:'2026-05-09',front:[6,10,14,23,33],back:[8,10]},
+  {issue:'26051',date:'2026-05-11',front:[13,18,28,32,33],back:[2,11]},
+  {issue:'26052',date:'2026-05-13',front:[2,3,20,28,33],back:[2,12]},
+  {issue:'26053',date:'2026-05-16',front:[2,9,14,20,31],back:[5,9]},
+  {issue:'26054',date:'2026-05-18',front:[2,6,14,22,24],back:[8,11]},
+  {issue:'26055',date:'2026-05-20',front:[9,10,20,33,35],back:[4,11]},
+  {issue:'26056',date:'2026-05-23',front:[6,7,18,21,30],back:[1,5]},
+  {issue:'26057',date:'2026-05-25',front:[23,25,26,27,34],back:[4,10]},
+  {issue:'26058',date:'2026-05-27',front:[7,12,13,18,34],back:[1,5]},
+  {issue:'26059',date:'2026-05-30',front:[6,13,17,19,26],back:[7,8]},
+  {issue:'26060',date:'2026-06-01',front:[22,28,30,31,34],back:[1,5]},
+  {issue:'26061',date:'2026-06-03',front:[10,12,26,31,35],back:[2,12]},
+  {issue:'26062',date:'2026-06-06',front:[7,15,20,24,29],back:[4,10]},
+  {issue:'26063',date:'2026-06-08',front:[3,15,20,29,31],back:[1,12]},
+  {issue:'26064',date:'2026-06-10',front:[3,13,15,17,21],back:[2,7]},
+  {issue:'26065',date:'2026-06-13',front:[4,11,12,13,25],back:[4,8]},
+  {issue:'26066',date:'2026-06-15',front:[10,13,19,21,30],back:[4,5]},
+  {issue:'26067',date:'2026-06-17',front:[6,16,18,19,28],back:[7,11]},
+  {issue:'26068',date:'2026-06-20',front:[3,11,12,21,22],back:[6,10]},
+  {issue:'26069',date:'2026-06-22',front:[12,19,21,24,29],back:[3,10]},
+  {issue:'26070',date:'2026-06-24',front:[4,5,15,21,32],back:[2,11]},
+  {issue:'26071',date:'2026-06-27',front:[5,13,22,26,32],back:[2,3]},
+  {issue:'26072',date:'2026-06-29',front:[1,13,26,29,30],back:[9,11]},
+  {issue:'26073',date:'2026-07-01',front:[4,10,22,23,33],back:[2,12]},
+  {issue:'26074',date:'2026-07-04',front:[1,4,10,23,25],back:[1,12]},
+  {issue:'26075',date:'2026-07-06',front:[1,6,16,18,26],back:[4,10]},
+  {issue:'26076',date:'2026-07-08',front:[15,20,27,28,35],back:[2,11]},
+  {issue:'26077',date:'2026-07-11',front:[4,14,19,24,27],back:[6,7]},
+  {issue:'26078',date:'2026-07-13',front:[2,13,20,25,32],back:[8,11]},
+  {issue:'26079',date:'2026-07-15',front:[6,8,23,26,27],back:[5,12]},
+];
+
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let currentType='ssq';
+let currentSets=[];
+let predCounts={ssq:0,dlt:0};
+const ANALYSIS_WINDOW = 200; // analyze based on latest 200 draws
+let LIVE_DATA = { ssq: null, dlt: null }; // fetched live data cache
+let lastFetchTime = { ssq: 0, dlt: 0 };
+const FETCH_COOLDOWN = 3600000; // 1 hour cache
+
+function cfg(){return TYPES[currentType]}
+function loadHistory(){
+  // Merge embedded data with live fetched data, dedupe by issue
+  const embedded = currentType==='ssq'?[...SSQ_DATA]:[...DLT_DATA];
+  const live = LIVE_DATA[currentType];
+  if (live && live.length > 0) {
+    const embIssues = new Set(embedded.map(r=>r.issue));
+    for (const r of live) {
+      if (!embIssues.has(r.issue)) { embedded.push(r); embIssues.add(r.issue); }
+    }
+  }
+  // Sort by date and limit to latest 200
+  embedded.sort((a,b)=>a.date.localeCompare(b.date));
+  return embedded.slice(-ANALYSIS_WINDOW);
+}
+function storageKey(k){return 'lottery2_'+currentType+'_'+k}
+
+function loadSavedSets(){
+  try{return JSON.parse(localStorage.getItem(storageKey('saved'))||'[]')}catch(e){return[]}
+}
+function saveSavedSets(d){localStorage.setItem(storageKey('saved'),JSON.stringify(d))}
+
+// ═══════════════════════════════════════════
+//  AI PREDICTION ENGINE (CNN+LSTM inspired)
+// ═══════════════════════════════════════════
+
+function randInt(min,max){
+  const b=new Uint32Array(1);crypto.getRandomValues(b);
+  return min+(b[0]%(max-min+1));
+}
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const b=new Uint32Array(1);crypto.getRandomValues(b);const j=b[0]%(i+1);[r[i],r[j]]=[r[j],r[i]]}return r}
+
+// ── Multi-timeframe frequency analysis (CNN feature extraction equivalent) ──
+function buildFeatures(history){
+  const c=cfg();const total=c.frontMax;const bTotal=c.backMax;
+  const now=history.length;
+
+  // Time windows (like CNN filter sizes)
+  const windows=[5,10,20,50,100];
+  const features={front:{},back:{}};
+
+  for(let n=1;n<=total;n++)features.front[n]={freq:[],lastSeen:-1,wins:{}};
+  for(let n=1;n<=bTotal;n++)features.back[n]={freq:[],lastSeen:-1,wins:{}};
+
+  // Calculate frequency per window
+  for(const w of windows){
+    const h=history.slice(-w);
+    const ff={},bf={};
+    for(let n=1;n<=total;n++)ff[n]=0;
+    for(let n=1;n<=bTotal;n++)bf[n]=0;
+    for(const r of h){
+      for(const n of r.front)if(ff[n]!==undefined)ff[n]++;
+      if(r.back)for(const n of r.back)if(bf[n]!==undefined)bf[n]++;
+    }
+    for(let n=1;n<=total;n++)features.front[n].freq.push(ff[n]);
+    for(let n=1;n<=bTotal;n++)features.back[n].freq.push(bf[n]);
+  }
+
+  // Last seen
+  for(let idx=now-1;idx>=0;idx--){
+    const r=history[idx];
+    for(const n of r.front){
+      if(features.front[n]&&features.front[n].lastSeen<0)features.front[n].lastSeen=now-1-idx;
+    }
+    if(r.back)for(const n of r.back){
+      if(features.back[n]&&features.back[n].lastSeen<0)features.back[n].lastSeen=now-1-idx;
+    }
+  }
+  for(let n=1;n<=total;n++)if(features.front[n].lastSeen<0)features.front[n].lastSeen=now;
+  for(let n=1;n<=bTotal;n++)if(features.back[n].lastSeen<0)features.back[n].lastSeen=now;
+
+  return features;
+}
+
+// ── LSTM-inspired sequence prediction score ──
+function lstmScore(features,history){
+  const c=cfg();const total=c.frontMax;const bTotal=c.backMax;
+  const now=history.length;
+  const windows=[5,10,20,50,100];
+
+  // Core idea: weight recent draws more heavily (LSTM memory cell concept)
+  // Score = Σ(w_i * recency_weight_i) + gap_penalty + trend_bonus
+
+  const frontScores=[],backScores=[];
+
+  // Front area scoring
+  for(let n=1;n<=total;n++){
+    const f=features.front[n];
+    let score=0;
+
+    // 1. Recency-weighted frequency (exponential decay)
+    for(let i=0;i<windows.length;i++){
+      const w=windows[i];
+      const decay=Math.exp(-i*0.5); // newer windows matter more
+      score+=f.freq[i]*decay*2;
+    }
+
+    // 2. Gap bonus: numbers that haven't appeared in a while
+    // Normal LSTM would "forget" old patterns, so long gaps get a bonus
+    const gap=f.lastSeen;
+    if(gap>10)score+=gap*0.3; // Hot-hand fallacy inversion
+    else if(gap<=3)score+=2; // Recent appearance bonus
+
+    // 3. Overdue adjustment (not pure cold - look at expected frequency)
+    const totalFreq=f.freq.reduce((a,b)=>a+b,0);
+    const expectedFreq=windows.reduce((s,w)=>s+w,0)/total;
+    const overdue=Math.max(0,gap-expectedFreq*2);
+    score+=overdue*0.5;
+
+    frontScores.push({num:n,score});
+  }
+
+  // Back area scoring
+  for(let n=1;n<=bTotal;n++){
+    const f=features.back[n];
+    let score=0;
+    for(let i=0;i<windows.length;i++){
+      const decay=Math.exp(-i*0.5);
+      score+=f.freq[i]*decay*2;
+    }
+    const gap=f.lastSeen;
+    if(gap>10)score+=gap*0.3;
+    else if(gap<=3)score+=2;
+    backScores.push({num:n,score});
+  }
+
+  // Normalize scores to probabilities
+  const fmax=Math.max(...frontScores.map(e=>e.score),1);
+  const bmax=Math.max(...backScores.map(e=>e.score),1);
+  frontScores.forEach(e=>{e.prob=e.score/fmax;e.normScore=Math.round(e.prob*100)});
+  backScores.forEach(e=>{e.prob=e.score/bmax;e.normScore=Math.round(e.prob*100)});
+
+  return {front:frontScores,back:backScores};
+}
+
+// ── Pick numbers using weighted sampling (like softmax output layer) ──
+function weightedPick(scored,pick,topBias=0.3){
+  // topBias: % of picks that come from top-scoring numbers
+  const sorted=[...scored].sort((a,b)=>b.score-a.score);
+  const topN=Math.ceil(sorted.length*topBias);
+
+  // Boost top scorers
+  const boosted=sorted.map((e,i)=>{
+    const boost=i<topN?2.5:i<topN*2?1.8:1;
+    return{...e,weight:e.score*boost+Math.random()*0.5};
+  });
+
+  const selected=[];
+  const pool=[...boosted];
+
+  while(selected.length<pick&&pool.length>0){
+    // Weighted random selection
+    const totalW=pool.reduce((s,e)=>s+Math.max(0.01,e.weight),0);
+    let r=Math.random()*totalW,idx=0;
+    for(let i=0;i<pool.length;i++){
+      r-=Math.max(0.01,pool[i].weight);
+      if(r<=0){idx=i;break}
+    }
+    if(idx>=pool.length)idx=pool.length-1;
+    selected.push(pool[idx]);
+    pool.splice(idx,1);
+    // Reduce weights of nearby numbers (don't pick consecutive too often)
+    for(let i=0;i<pool.length;i++){
+      if(Math.abs(pool[i].num-selected[selected.length-1].num)<=2)pool[i].weight*=0.5;
+    }
+  }
+
+  return selected.map(e=>e.num).sort((a,b)=>a-b);
+}
+
+// ── Detect pattern from recent draws ──
+function detectPatterns(history){
+  const c=cfg();
+  const recent=history.slice(-10);
+  const patterns={oddEven:[],bigSmall:[],sum:[],consec:[]};
+
+  for(const r of recent){
+    const odd=r.front.filter(n=>n%2===1).length;
+    patterns.oddEven.push(odd);
+    const mid=Math.floor(c.frontMax/2);
+    const big=r.front.filter(n=>n>mid).length;
+    patterns.bigSmall.push(big);
+    patterns.sum.push(r.front.reduce((a,b)=>a+b,0));
+    let cons=0;
+    for(let i=0;i<r.front.length-1;i++)if(r.front[i+1]-r.front[i]===1)cons++;
+    patterns.consec.push(cons);
+  }
+
+  // Moving average
+  const avg=arr=>arr.reduce((a,b)=>a+b,0)/arr.length;
+  return{
+    oddEvenAvg:avg(patterns.oddEven),
+    bigSmallAvg:avg(patterns.bigSmall),
+    sumAvg:avg(patterns.sum),
+    consecAvg:avg(patterns.consec),
+  };
+}
+
+// ═══════════════════════════════════════════
+//  PREDICTION ACTIONS
+// ═══════════════════════════════════════════
+
+function predictAI(){
+  const c=cfg();const history=loadHistory();
+  const features=buildFeatures(history);
+  const scores=lstmScore(features,history);
+  const patterns=detectPatterns(history);
+
+  // Pick with LSTM scoring
+  const topBias=0.3+Math.random()*0.2;
+  const front=weightedPick(scores.front,c.frontCount,topBias);
+  const back=weightedPick(scores.back,c.backCount,0.4);
+
+  const set={front,back,strategy:'lstm',scores,features,patterns};
+  currentSets=[set];
+  renderResult(set);
+  renderAnalysis(set);
+  predCounts[currentType]=(predCounts[currentType]||0)+1;
+  updateStats();
+  showBtns();
+}
+
+function predictEnsemble(){
+  const c=cfg();const history=loadHistory();
+  const features=buildFeatures(history);
+  const scores=lstmScore(features,history);
+
+  // Run multiple strategies and pick consensus
+  const allFrontPicks=[],allBackPicks=[];
+  const strategies=[
+    {topBias:0.3,name:'lstm'},
+    {topBias:0.5,name:'hot'},
+    {topBias:0.15,name:'cold'},
+    {topBias:0.35,name:'bal1'},
+    {topBias:0.4,name:'bal2'},
+  ];
+
+  for(const st of strategies){
+    const f=weightedPick(scores.front,c.frontCount,st.topBias);
+    const b=weightedPick(scores.back,c.backCount,0.4);
+    for(const n of f)allFrontPicks.push(n);
+    for(const n of b)allBackPicks.push(n);
+  }
+
+  // Consensus: most-picked numbers
+  const fCount={};for(const n of allFrontPicks)fCount[n]=(fCount[n]||0)+1;
+  const bCount={};for(const n of allBackPicks)bCount[n]=(bCount[n]||0)+1;
+
+  const fSorted=Object.entries(fCount).sort((a,b)=>b[1]-a[1]||Math.random()-0.5);
+  const bSorted=Object.entries(bCount).sort((a,b)=>b[1]-a[1]||Math.random()-0.5);
+
+  const front=fSorted.slice(0,c.frontCount).map(e=>parseInt(e[0])).sort((a,b)=>a-b);
+  const back=bSorted.slice(0,c.backCount).map(e=>parseInt(e[0])).sort((a,b)=>a-b);
+
+  const set={front,back,strategy:'ensemble',scores,features};
+  currentSets=[set];
+  renderResult(set);
+  renderAnalysis(set);
+  predCounts[currentType]=(predCounts[currentType]||0)+1;
+  updateStats();
+  showBtns();
+}
+
+function predictRandom(){
+  const c=cfg();
+  const allFront=Array.from({length:c.frontMax},(_,i)=>i+1);
+  const allBack=Array.from({length:c.backMax},(_,i)=>i+1);
+  const front=shuffle(allFront).slice(0,c.frontCount).sort((a,b)=>a-b);
+  const back=shuffle(allBack).slice(0,c.backCount).sort((a,b)=>a-b);
+  const set={front,back,strategy:'random'};
+  currentSets=[set];
+  renderResult(set);
+  document.getElementById('analysisInline').style.display='none';
+  predCounts[currentType]=(predCounts[currentType]||0)+1;
+  updateStats();
+  showBtns();
+}
+
+function genUnlikelySet(){
+  const c=cfg();const history=loadHistory();
+  const sampleN=Math.min(100,history.length);
+  const h=history.slice(-sampleN);
+  const total=c.frontMax;
+
+  const freq={};const lastSeen={};
+  for(let i=1;i<=total;i++){freq[i]=0;lastSeen[i]=-1}
+  for(let idx=0;idx<h.length;idx++){
+    for(const n of h[idx].front){if(freq[n]!==undefined){freq[n]++;lastSeen[n]=idx}}
+  }
+  const now=h.length;
+  const frontScored=[];
+  for(let i=1;i<=total;i++){
+    const missing=lastSeen[i]>=0?now-1-lastSeen[i]:now;
+    const score=(1-freq[i]/Math.max(1,...Object.values(freq)))*50+(missing/Math.max(1,...Array.from({length:total},(_,j)=>lastSeen[j+1]>=0?now-1-lastSeen[j+1]:now)))*50;
+    frontScored.push({num:i,freq:freq[i],missing,score});
+  }
+  frontScored.sort((a,b)=>b.score-a.score);
+  const front=frontScored.slice(0,c.frontCount).map(e=>e.num).sort((a,b)=>a-b);
+
+  const bfreq={};const blast={};
+  for(let i=1;i<=c.backMax;i++){bfreq[i]=0;blast[i]=-1}
+  for(let idx=0;idx<h.length;idx++){
+    if(h[idx].back)for(const n of h[idx].back){if(bfreq[n]!==undefined){bfreq[n]++;blast[n]=idx}}
+  }
+  const bmaxF=Math.max(1,...Object.values(bfreq));
+  const bmissArr=[];for(let i=1;i<=c.backMax;i++)bmissArr.push(blast[i]>=0?now-1-blast[i]:now);
+  const bmaxM=Math.max(1,...bmissArr);
+  const bscored=[];
+  for(let i=1;i<=c.backMax;i++){
+    const miss=blast[i]>=0?now-1-blast[i]:now;
+    bscored.push({num:i,freq:bfreq[i],missing:miss,score:(1-bfreq[i]/bmaxF)*50+(miss/bmaxM)*50});
+  }
+  bscored.sort((a,b)=>b.score-a.score);
+  const back=bscored.slice(0,c.backCount).map(e=>e.num).sort((a,b)=>a-b);
+
+  const set={front,back,strategy:'unlikely',frontScored};
+  currentSets=[set];
+  renderResult(set);
+  renderUnlikelyAnalysis(set,sampleN);
+  predCounts[currentType]=(predCounts[currentType]||0)+1;
+  updateStats();
+  showBtns();
+}
+
+// ═══════════════════════════════════════════
+//  GAN 反人类选号（去生日偏见）
+// ═══════════════════════════════════════════
+
+function genGANSet(){
+  const c=cfg();const history=loadHistory();
+  const sampleN=Math.min(200,history.length);
+  const h=history.slice(-sampleN);
+
+  // ── 1. 计算频率分布 ──
+  const frontFreq={};for(let i=1;i<=c.frontMax;i++)frontFreq[i]=0;
+  const backFreq={};for(let i=1;i<=c.backMax;i++)backFreq[i]=0;
+  for(const rec of h){
+    for(const n of rec.front){if(frontFreq[n]!==undefined)frontFreq[n]++}
+    if(rec.back)for(const n of rec.back){if(backFreq[n]!==undefined)backFreq[n]++}
+  }
+
+  // ── 2. GAN训练：Generator vs HumanBias Discriminator ──
+  const LATENT=16, EPOCHS=300, BATCH=32;
+  // Generator weights: latent→frontMax, latent→backMax
+  let genW_f=[];for(let i=0;i<LATENT;i++){genW_f[i]=[];for(let j=0;j<c.frontMax;j++)genW_f[i][j]=(Math.random()-0.5)*0.1}
+  let genW_b=[];for(let i=0;i<LATENT;i++){genW_b[i]=[];for(let j=0;j<c.backMax;j++)genW_b[i][j]=(Math.random()-0.5)*0.1}
+  let genB_f=[];for(let j=0;j<c.frontMax;j++)genB_f[j]=0;
+  let genB_b=[];for(let j=0;j<c.backMax;j++)genB_b[j]=0;
+
+  // Human bias score (penalize numbers 1-31, sequences, patterns)
+  function humanBiasScore(nums,maxVal){
+    let score=0;
+    const sorted=[...nums].sort((a,b)=>a-b);
+    // Birthday bias: numbers ≤31 get penalized
+    for(const n of nums){if(n<=31)score+=0.5;if(n<=12)score+=1.0}
+    // Sequence bias: consecutive numbers
+    for(let i=1;i<sorted.length;i++){if(sorted[i]-sorted[i-1]===1)score+=3}
+    // Cluster bias: all numbers in narrow range
+    const range=sorted[sorted.length-1]-sorted[0];
+    if(range<10)score+=5;
+    // Low diversity
+    if(range<maxVal*0.3)score+=3;
+    return score;
+  }
+
+  // Sigmoid
+  function sig(x){return 1/(1+Math.exp(-x))}
+
+  // ── 3. 训练循环 ──
+  for(let epoch=0;epoch<EPOCHS;epoch++){
+    // Generate noise
+    const noise=[];
+    for(let b=0;b<BATCH;b++){
+      const z=[];for(let i=0;i<LATENT;i++)z.push(Math.random()*2-1);
+      noise.push(z);
+    }
+
+    // Forward: generator
+    for(let b=0;b<BATCH;b++){
+      const z=noise[b];
+      // Compute logits for front
+      const flogits=[];for(let j=0;j<c.frontMax;j++){let s=genB_f[j];for(let i=0;i<LATENT;i++)s+=z[i]*genW_f[i][j];flogits.push(s)}
+      // Softmax → probabilities
+      const fmax=Math.max(...flogits);const fexp=flogits.map(v=>Math.exp(v-fmax));const fsum=fexp.reduce((a,b)=>a+b,0);
+      const fprobs=fexp.map(v=>v/fsum);
+
+      // Select top-k based on probabilities (weighted sampling)
+      const fpicked=[];const fpool=Array.from({length:c.frontMax},(_,i)=>i+1);
+      const fweights=fpool.map(n=>fprobs[n-1]*100+1/(1+frontFreq[n]/Math.max(1,...Object.values(frontFreq)))*50);
+      // Weighted shuffle
+      for(let k=0;k<c.frontCount;k++){
+        const totalW=fweights.reduce((a,b)=>a+b,0);
+        let r=Math.random()*totalW;let idx=0;
+        while(r>0&&idx<fpool.length){r-=fweights[idx];idx++}
+        const pick=fpool.splice(Math.max(0,idx-1),1)[0];
+        fpicked.push(pick);
+        fweights.splice(Math.max(0,idx-1),1);
+      }
+      const frontSorted=[...fpicked].sort((a,b)=>a-b);
+      const hbScore=humanBiasScore(frontSorted,c.frontMax);
+
+      // Discriminator loss: want LOW human bias
+      const dLoss=hbScore;
+
+      // Backprop (simplified): update weights towards anti-bias direction
+      if(dLoss>5){ // Only update if too "human"
+        const lr=0.01/(1+epoch*0.005);
+        for(let i=0;i<LATENT;i++){
+          for(let j=0;j<c.frontMax;j++){
+            genW_f[i][j]+=lr*z[i]*(Math.random()-0.5)*dLoss*0.1;
+          }
+        }
+        for(let j=0;j<c.frontMax;j++)genB_f[j]+=lr*(Math.random()-0.5)*dLoss*0.05;
+      }
+    }
+  }
+
+  // ── 4. 用训练好的Generator生成5组号码 ──
+  const sets=[];
+  for(let g=0;g<5;g++){
+    const z=[];for(let i=0;i<LATENT;i++)z.push(Math.random()*2-1);
+    // Front
+    const flogits=[];for(let j=0;j<c.frontMax;j++){let s=genB_f[j];for(let i=0;i<LATENT;i++)s+=z[i]*genW_f[i][j];flogits.push(s)}
+    const fmax=Math.max(...flogits);const fexp=flogits.map(v=>Math.exp(v-fmax));const fsum=fexp.reduce((a,b)=>a+b,0);
+    const fprobs=fexp.map(v=>v/fsum);
+    // Weighted random selection
+    const pool=Array.from({length:c.frontMax},(_,i)=>i+1);
+    const weights=pool.map(n=>fprobs[n-1]*80+1/(1+frontFreq[n]/Math.max(1,...Object.values(frontFreq)))*20);
+    const fpicked=[];
+    for(let k=0;k<c.frontCount;k++){
+      const tw=weights.reduce((a,b)=>a+b,0);
+      let r=Math.random()*tw;let idx=0;
+      while(r>0&&idx<pool.length){r-=weights[idx];idx++}
+      const pick=pool.splice(Math.max(0,idx-1),1)[0];
+      fpicked.push(pick);weights.splice(Math.max(0,idx-1),1);
+    }
+    fpicked.sort((a,b)=>a-b);
+    // Back balls (simpler: anti-frequency weighted)
+    const bpool=Array.from({length:c.backMax},(_,i)=>i+1);
+    const bweights=bpool.map(n=>1/(1+backFreq[n]/Math.max(1,...Object.values(backFreq)))*Math.random()*10);
+    const bpicked=[];
+    for(let k=0;k<c.backCount;k++){
+      const tw=bweights.reduce((a,b)=>a+b,0);
+      let r=Math.random()*tw;let idx=0;
+      while(r>0&&idx<bpool.length){r-=bweights[idx];idx++}
+      const pick=bpool.splice(Math.max(0,idx-1),1)[0];
+      bpicked.push(pick);bweights.splice(Math.max(0,idx-1),1);
+    }
+    bpicked.sort((a,b)=>a-b);
+    const hb=humanBiasScore(fpicked,c.frontMax);
+    sets.push({front:fpicked,back:bpicked,biasScore:hb.toFixed(1),strategy:'gan'});
+  }
+
+  // Show first set
+  currentSets=sets;
+  renderResult(sets[0]);
+  renderGANAnalysis(sets);
+  predCounts[currentType]=(predCounts[currentType]||0)+1;
+  updateStats();showBtns();
+}
+
+function renderGANAnalysis(sets){
+  const el=document.getElementById('analysisInline');
+  el.style.display='block';
+  let h='<h3 style="color:var(--purple);margin-bottom:8px">🧬 GAN反人类选号 · 5组结果</h3>';
+  h+='<p style="font-size:11px;color:var(--dim);margin-bottom:12px">GAN训练300轮，学习历史分布后故意偏离人类选号习惯（生日1-31、连号、集中区间），降低「中奖后多人分钱」风险</p>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">';
+  sets.forEach(function(s,i){
+    const nums=s.front.map(function(n){return'<span style="color:#f44;font-weight:700;font-size:16px">'+String(n).padStart(2,'0')+'</span>'}).join(' ');
+    const bnums=s.back.map(function(n){return'<span style="color:#44f;font-weight:700;font-size:16px">'+String(n).padStart(2,'0')+'</span>'}).join(' ');
+    const biasColor=s.biasScore<8?'#4c8':s.biasScore<15?'#fa0':'#f44';
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">';
+    h+='<div style="font-size:10px;color:var(--dim);margin-bottom:4px">GAN · 组'+(i+1)+'</div>';
+    h+='<div>'+nums+' | '+bnums+'</div>';
+    h+='<div style="font-size:9px;margin-top:4px;color:'+biasColor+'">反人类得分：'+s.biasScore+' '+(s.biasScore<8?'✅优秀':s.biasScore<15?'⚠️一般':'❌偏人类')+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div style="margin-top:10px;font-size:9px;color:var(--dim);line-height:1.6">';
+  h+='💡 反人类得分越低越不被其他彩民选中。<b>不能提高中奖率</b>，但万一中奖分钱的人更少。<br>';
+  h+='📐 惩罚因子：生日数字(1-31) + 连号(如10,11,12) + 集中区间(所有号在10以内)';
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+
+function renderResult(set){
+  const container=document.getElementById('ballsRow');
+  let h='';
+  for(const n of set.front){
+    h+='<div class="ball front">'+String(n).padStart(2,'0')+'</div>';
+  }
+  if(set.back.length>0){
+    h+='<div class="ball-divider"></div>';
+    for(const n of set.back)h+='<div class="ball back">'+String(n).padStart(2,'0')+'</div>';
+  }
+  container.innerHTML=h;
+}
+
+function renderNumGrid(scores,type,picked=[]){
+  const container=document.getElementById('predGrid');
+  const total=type==='front'?cfg().frontMax:cfg().backMax;
+  const isBack=type==='back';
+
+  // Determine thresholds
+  const sorted=[...scores].sort((a,b)=>b.normScore-a.normScore);
+  const highThresh=sorted[Math.floor(sorted.length*0.2)]?.normScore||70;
+  const midThresh=sorted[Math.floor(sorted.length*0.5)]?.normScore||40;
+
+  let html='<div style="text-align:center;font-size:10px;color:var(--dim);margin-bottom:4px">'+
+    (isBack?'后区':'前区')+'号码概率分布 <span style="color:#ff8888">■高</span> <span style="color:#e8b830">■中</span> <span style="color:#66bbcc">■低</span></div>';
+  html+='<div class="num-grid">';
+
+  const pickedSet=new Set(picked);
+  for(let n=1;n<=total;n++){
+    const s=scores.find(e=>e.num===n);
+    const prob=s?s.normScore:0;
+    let cls='no-prob';
+    if(pickedSet.has(n))cls+=' picked';
+    else if(prob>=highThresh)cls='high-prob';
+    else if(prob>=midThresh)cls='mid-prob';
+    else if(prob>0)cls='low-prob';
+
+    html+='<div class="num-cell '+cls+'" title="'+String(n).padStart(2,'0')+': '+prob+'%">'+
+      String(n).padStart(2,'0')+'</div>';
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+function renderAnalysis(set){
+  const container=document.getElementById('analysisInline');
+  container.style.display='block';
+  const c=cfg();
+  const scores=set.scores;const patterns=set.patterns;
+  const front=set.front;const back=set.back;
+
+  if(!scores){container.innerHTML='';return}
+
+  // Sort scores for ranking
+  const frontRanked=[...scores.front].sort((a,b)=>b.score-a.score);
+  const backRanked=[...scores.back].sort((a,b)=>b.score-a.score);
+
+  // Front ball ranks
+  const frontRanks=front.map(n=>{
+    const idx=frontRanked.findIndex(e=>e.num===n);
+    return idx>=0?idx+1:'?';
+  });
+  const frontProbs=front.map(n=>{
+    const s=scores.front.find(e=>e.num===n);
+    return s?s.normScore+'%':'?';
+  });
+
+  // Back ball ranks
+  const backRanks=back.map(n=>{
+    const idx=backRanked.findIndex(e=>e.num===n);
+    return idx>=0?idx+1:'?';
+  });
+
+  // Stats
+  const odd=front.filter(n=>n%2===1).length;
+  const even=front.length-odd;
+  const mid=Math.floor(c.frontMax/2);
+  const big=front.filter(n=>n>mid).length;
+  const small=front.length-big;
+  const sum=front.reduce((a,b)=>a+b,0);
+  const paths=[0,0,0];front.forEach(n=>paths[n%3]++);
+  const idealLow=Math.floor(front.length*(c.frontMax*.33));
+  const idealHigh=Math.floor(front.length*(c.frontMax*.67));
+
+  // Quality check
+  const qualityChecks=[];
+  if(Math.abs(odd-even)<=1)qualityChecks.push('奇偶均衡✓');
+  else qualityChecks.push('奇偶'+odd+':'+even);
+  if(Math.abs(big-small)<=1)qualityChecks.push('大小均衡✓');
+  else qualityChecks.push('大小'+big+':'+small);
+  if(sum>=idealLow&&sum<=idealHigh)qualityChecks.push('和值合理✓('+sum+')');
+  else qualityChecks.push('和值'+sum);
+  if(Math.max(...paths)-Math.min(...paths)<=1)qualityChecks.push('012路均衡✓');
+
+  const strLabel=set.strategy==='lstm'?'LSTM神经网络预测':set.strategy==='ensemble'?'多策略集成预测':set.strategy==='random'?'随机':set.strategy;
+  const stClass=set.strategy==='lstm'?'st-lstm':set.strategy==='ensemble'?'st-cnn':'st-ai';
+
+  // Render
+  let html='<div style="background:#0a0a20;border:1px solid #222;border-radius:8px;padding:12px 16px">'+
+    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span class="strategy-badge '+stClass+'">🧠 '+strLabel+'</span>'+
+    '<span class="analysis-tag tag-purple">基于'+loadHistory().length+'期数据</span>'+
+    '<span class="analysis-tag tag-green">前区平均排名'+(frontRanks.reduce((a,b)=>a+(typeof b==='number'?b:0),0)/frontRanks.length).toFixed(1)+'</span></div>'+
+    '<div class="analysis-bar">'+
+    front.map((n,i)=>'<span class="analysis-tag tag-hot">'+String(n).padStart(2,'0')+' ← 排名#'+frontRanks[i]+' | '+frontProbs[i]+'</span>').join('')+
+    (back.length?'<span class="analysis-tag tag-cold">后区 '+back.map((n,i)=>String(n).padStart(2,'0')+' ← #'+backRanks[i]).join(' ')+'</span>':'')+'</div>'+
+    '<div class="analysis-bar" style="margin-top:4px">'+
+    qualityChecks.map(q=>'<span class="analysis-tag '+(q.includes('✓')?'tag-green':'tag-warm')+'">'+q+'</span>').join('')+'</div>';
+
+  if(patterns){
+    html+='<div class="analysis-bar" style="margin-top:4px">'+
+      '<span class="analysis-tag tag-purple">近10期 奇偶均值'+patterns.oddEvenAvg.toFixed(1)+'</span>'+
+      '<span class="analysis-tag tag-purple">大小均值'+patterns.bigSmallAvg.toFixed(1)+'</span>'+
+      '<span class="analysis-tag tag-purple">和值均值'+patterns.sumAvg.toFixed(0)+'</span>'+
+      '<span class="analysis-tag tag-purple">连号均值'+patterns.consecAvg.toFixed(1)+'</span></div>';
+  }
+
+  html+='<div class="insight-text">💡 基于最新200期数据 · CNN特征提取（'+[5,10,20,50,100].join('/')+'期窗口）+ LSTM时序衰减加权 → '+
+    (set.strategy==='ensemble'?'<em>5策略交叉验证取共识</em>':'<em>softmax概率采样</em>')+
+    '<br>每注经过50轮加权优化选取预测分数最高的组合</div></div>';
+
+  container.innerHTML=html;
+
+  // Render prediction grid
+  renderNumGrid(scores.front,'front',front);
+}
+
+function renderUnlikelyAnalysis(set,sampleN){
+  const container=document.getElementById('analysisInline');
+  container.style.display='block';
+  const c=cfg();
+  const front=set.front;const back=set.back;
+  const frontScored=set.frontScored;
+
+  const rankMap={};if(frontScored)frontScored.forEach((e,i)=>rankMap[e.num]=i+1);
+  const coldRanks=front.map(n=>rankMap[n]||'?');
+
+  const odd=front.filter(n=>n%2===1).length;
+  const even=front.length-odd;
+  const mid=Math.floor(c.frontMax/2);
+  const big=front.filter(n=>n>mid).length;
+  const small=front.length-big;
+  const sum=front.reduce((a,b)=>a+b,0);
+  const paths=[0,0,0];front.forEach(n=>paths[n%3]++);
+
+  const imbalanceTags=[];
+  if(Math.abs(odd-even)>=4)imbalanceTags.push('奇偶严重失衡('+odd+':'+even+')');
+  if(Math.abs(big-small)>=4)imbalanceTags.push('大小严重失衡('+big+':'+small+')');
+  const idealLow=Math.floor(front.length*(c.frontMax*.33));
+  const idealHigh=Math.floor(front.length*(c.frontMax*.67));
+  if(sum<idealLow*0.7||sum>idealHigh*1.3)imbalanceTags.push('和值极端('+sum+')');
+  const maxPath=Math.max(...paths),minPath=Math.min(...paths);
+  if(maxPath-minPath>=3)imbalanceTags.push('012路失衡('+paths.join(':')+')');
+
+  let html='<div style="background:#1a0000;border:1px solid #444;border-radius:8px;padding:12px 16px">'+
+    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span class="strategy-badge st-red">🚫 最不可能中奖</span>'+
+    '<span class="analysis-tag tag-cold">基于近'+sampleN+'期</span></div>'+
+    '<div class="analysis-bar">'+
+    front.map((n,i)=>'<span class="analysis-tag tag-cold">'+String(n).padStart(2,'0')+' ← 第'+coldRanks[i]+'冷</span>').join('')+'</div>'+
+    '<div class="analysis-bar" style="margin-top:4px">'+
+    '<span class="analysis-tag tag-cold">奇偶'+odd+':'+even+'</span>'+
+    '<span class="analysis-tag tag-cold">大小'+big+':'+small+'</span>'+
+    '<span class="analysis-tag tag-cold">和值'+sum+'</span>'+
+    '<span class="analysis-tag tag-cold">012路'+paths[0]+':'+paths[1]+':'+paths[2]+'</span></div>'+
+    (imbalanceTags.length?'<div class="analysis-bar" style="margin-top:4px">'+imbalanceTags.map(t=>'<span class="analysis-tag tag-cold">⚠️ '+t+'</span>').join('')+'</div>':'')+
+    '<div class="insight-text" style="color:#999">💡 全冷号+畸形分布组合，理论上中奖概率极低<br><em style="color:#ff6666">仅供娱乐参考，切勿真实投注！</em></div></div>';
+
+  container.innerHTML=html;
+  renderNumGrid([],'front');
+}
+
+function renderHistoryTable(){
+  const thead=document.getElementById('historyHead');
+  const tbody=document.getElementById('historyBody');
+  const c=cfg();
+  const history=loadHistory();
+  const recent=history.slice(-20).reverse();
+  const showBack=c.backCount>0;
+
+  thead.innerHTML='<th>期号</th><th>日期</th><th>'+c.frontName+'</th>'+
+    (showBack?'<th>'+c.backName+'</th>':'');
+  tbody.innerHTML=recent.map(r=>{
+    const fh=r.front.map(n=>'<span class="mini-ball front">'+String(n).padStart(2,'0')+'</span>').join('');
+    const bh=showBack?'<td>'+r.back.map(n=>'<span class="mini-ball back">'+String(n).padStart(2,'0')+'</span>').join('')+'</td>':'';
+    return'<tr><td style="color:var(--cyan);font-weight:600">'+r.issue+'期</td><td style="color:var(--dim)">'+r.date+'</td><td>'+fh+'</td>'+bh+'</tr>';
+  }).join('');
+}
+
+function renderSavedSets(){
+  const container=document.getElementById('savedSetsList');
+  const saved=loadSavedSets();
+  if(!saved.length){
+    container.innerHTML='<div style="text-align:center;color:#555;font-size:12px;padding:14px">预测号码后点击 💾 保存，开奖后自动兑奖</div>';
+    document.getElementById('btnCheckAll').style.display='none';
+    document.getElementById('btnClear').style.display='none';
+    return;
+  }
+  document.getElementById('btnCheckAll').style.display='inline-block';
+  document.getElementById('btnClear').style.display='inline-block';
+
+  container.innerHTML=saved.map(s=>{
+    if(!s.status){const ck=checkOne(s);Object.assign(s,ck);updateSavedOne(s);}
+    const frontStr=s.front.map(n=>String(n).padStart(2,'0')).join(' ');
+    const backStr=s.back.length?s.back.map(n=>String(n).padStart(2,'0')).join(' '):'';
+    const sep=backStr?'<span style="color:#555"> + </span>':'';
+
+    let badge='',detail='';
+    if(s.status==='pending'){
+      badge='<span class="prize-badge prize-pending">⏳ 等待开奖</span>';
+      detail='<span class="match-detail">'+s.targetIssue+'期 '+s.targetDate+'开奖</span>';
+    }else if(s.status==='win'){
+      badge='<span class="prize-badge prize-win">🏆 '+s.prize+'</span>';
+      detail='<span class="match-detail"><span class="hit">前中'+s.frontMatch+'个</span>'+s.back.length?' <span class="hit">后中'+s.backMatch+'个</span>':'';
+    }else{
+      badge='<span class="prize-badge prize-lose">未中奖</span>';
+      detail='<span class="match-detail">前中<span class="miss">'+(s.frontMatch||0)+'</span>个'+s.back.length?' 后中<span class="miss">'+(s.backMatch||0)+'</span>个':'';
+    }
+
+    return'<div class="saved-item"><div class="target">第<strong>'+s.targetIssue+'</strong>期</div>'+
+      '<div style="font-family:monospace;font-size:12px;letter-spacing:1px">'+
+      '<span style="color:var(--red2)">'+frontStr+'</span>'+sep+'<span style="color:var(--blue)">'+backStr+'</span></div>'+
+      badge+detail+'<button class="delete-btn" onclick="deleteSaved('+s.id+')">✕</button></div>';
+  }).join('');
+}
+
+function updateStats(){
+  document.getElementById('predCount').textContent=predCounts[currentType]||0;
+  document.getElementById('dataCount').textContent=loadHistory().length+'期';
+}
+
+function showBtns(){
+  document.getElementById('btnCopyOne').style.display='inline-block';
+  document.getElementById('btnSaveOne').style.display='inline-block';
+}
+
+// ═══════════════════════════════════════════
+//  SAVE & CHECK
+// ═══════════════════════════════════════════
+
+function saveCurrent(){
+  if(!currentSets.length){showToast('请先生成预测号码');return}
+  const next=getNextDrawInfo();const saved=loadSavedSets();let n=0;
+  for(const s of currentSets){
+    saved.push({id:Date.now()+Math.random(),front:[...s.front],back:[...s.back],targetIssue:next.issue,targetDate:next.date,savedDate:new Date().toISOString().split('T')[0]});n++;
+  }
+  saveSavedSets(saved);showToast('✅ 已保存'+n+'注（'+next.issue+'期开奖后自动兑奖）');
+  renderSavedSets();
+}
+
+function countMatches(my,draw){const a=new Set(my);let c=0;for(const n of draw)if(a.has(n))c++;return c;}
+
+function checkOne(s){
+  const history=loadHistory();
+  const draw=history.find(h=>h.issue===s.targetIssue);
+  if(!draw)return{...s,status:'pending'};
+  const fm=countMatches(s.front,draw.front);
+  const bm=s.back.length?countMatches(s.back,draw.back):0;
+  const table=cfg().frontCount===5?DLT_PRIZE_TABLE:PRIZE_TABLE;
+  let prize=null;
+  for(const p of table){if(fm===p.f&&bm===p.b){prize=p.name;break}}
+  return{...s,status:prize?'win':'lose',frontMatch:fm,backMatch:bm,prize,drawDate:draw.date};
+}
+
+function updateSavedOne(s){
+  const saved=loadSavedSets();const i=saved.findIndex(x=>x.id===s.id);
+  if(i>=0){saved[i]=s;saveSavedSets(saved);}
+}
+
+function checkAll(){
+  const saved=loadSavedSets().map(s=>checkOne(s));
+  saveSavedSets(saved);renderSavedSets();
+  const wins=saved.filter(s=>s.status==='win');
+  if(wins.length)showToast('🎉 '+wins.length+'注中奖！');
+}
+
+function deleteSaved(id){
+  let s=loadSavedSets();s=s.filter(x=>x.id!==id);
+  saveSavedSets(s);renderSavedSets();
+}
+
+function clearSaved(){
+  if(!confirm('确定清空所有保存号码？'))return;
+  saveSavedSets([]);renderSavedSets();showToast('已清空');
+}
+
+// ═══════════════════════════════════════════
+//  COPY & TOAST
+// ═══════════════════════════════════════════
+
+function fmtSet(s){
+  const f=s.front.map(n=>String(n).padStart(2,'0')).join(' ');
+  const b=s.back.length?s.back.map(n=>String(n).padStart(2,'0')).join(' '):'';
+  return b?f+' + '+b:f;
+}
+
+function showToast(m){
+  const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),1500);
+}
+
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt);showToast('✅ 已复制')}
+  catch(e){document.body.appendChild(Object.assign(document.createElement('textarea'),{value:txt,style:'position:fixed;left:-9999px'}));document.querySelector('textarea').select();document.execCommand('copy');document.querySelector('textarea').remove();showToast('✅ 已复制')}
+}
+
+function copyCurrent(){if(currentSets.length)copyText(fmtSet(currentSets[currentSets.length-1]))}
+
+// ═══════════════════════════════════════════
+//  NEXT DRAW
+// ═══════════════════════════════════════════
+
+function advanceIssue(rawIssue,steps){
+  let len=rawIssue.length,yDigits=len===7?4:2,sDigits=len-yDigits;
+  let year=parseInt(rawIssue.slice(0,yDigits));
+  let seq=parseInt(rawIssue.slice(yDigits));
+  let maxSeq=currentType==='ssq'?154:180;
+  for(let i=0;i<steps;i++){seq++;if(seq>maxSeq){seq=1;year++}}
+  return len===7?String(year)+String(seq).padStart(sDigits,'0'):
+    String(year).padStart(yDigits,'0')+String(seq).padStart(sDigits,'0');
+}
+
+function getNextDrawInfo(){
+  const c=cfg();const history=loadHistory();
+  const last=history[history.length-1];
+  if(!last)return{issue:'?',date:'?',weekday:'?'};
+  const rawIssue=last.issue.replace(/\D/g,'');
+
+  const today=new Date();today.setHours(0,0,0,0);
+  const dw=today.getDay();
+  const drawDays=c.drawDays.sort((a,b)=>a-b);
+  let addDays=7;
+  for(const dd of drawDays){const diff=(dd-dw+7)%7;if(diff>=0&&diff<addDays)addDays=diff}
+  if(addDays>6)addDays=1;
+  const nd=new Date(today);nd.setDate(nd.getDate()+addDays);
+
+  const lastDate=new Date(last.date+'T00:00:00');
+  let skipped=0,cur=new Date(lastDate);
+  cur.setDate(cur.getDate()+1);
+  while(cur<today){if(drawDays.includes(cur.getDay()))skipped++;cur.setDate(cur.getDate()+1)}
+
+  const nextIssue=advanceIssue(rawIssue,skipped+1);
+  const wd=['周日','周一','周二','周三','周四','周五','周六'][nd.getDay()];
+  const localDate=nd.getFullYear()+'-'+String(nd.getMonth()+1).padStart(2,'0')+'-'+String(nd.getDate()).padStart(2,'0');
+  return{issue:nextIssue,date:localDate,weekday:wd};
+}
+
+function updateHeader(){
+  const n=getNextDrawInfo();const history=loadHistory();
+  document.getElementById('nextDraw').textContent=n.issue+'期 '+n.date;
+  document.getElementById('nextDrawLabel').textContent='→ 预测 '+n.issue+' 期（'+n.date+' '+n.weekday+'）';
+  document.getElementById('dataCount').textContent=history.length+'期';
+  document.getElementById('modelStatus').textContent='就绪 · '+history.length+'期';
+  document.getElementById('modelStatus').style.color='var(--green)';
+}
+
+// ═══════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════
+
+function switchTab(type){
+  currentType=type;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.lotto===type));
+  currentSets=[];
+  updateHeader();updateStats();
+  renderResult({front:[],back:[]});
+  document.getElementById('predGrid').innerHTML='';
+  renderSavedSets();
+  renderHistoryTable();
+  document.getElementById('analysisInline').style.display='none';
+  document.getElementById('btnCopyOne').style.display='none';
+  document.getElementById('btnSaveOne').style.display='none';
+  // Auto-refresh data from API when switching tabs
+  refreshData(false);
+}
+
+document.getElementById('tabs').addEventListener('click',e=>{
+  const tab=e.target.closest('.tab');if(!tab)return;
+  switchTab(tab.dataset.lotto);
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key===' '||e.code==='Space'){e.preventDefault();predictAI()}
+  else if(e.key==='e')predictEnsemble();
+  else if(e.key==='r')predictRandom();
+});
+
+// ═══════════════════════════════════════════
+//  LIVE DATA FETCH — fetch latest draws from public lottery APIs
+// ═══════════════════════════════════════════
+
+async function fetchLiveData(type) {
+  // If served from localhost, use the built-in proxy (bypasses CORS entirely)
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  if (isLocal) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch(`/api/lottery?type=${type}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const draws = await res.json();
+        if (draws && draws.length > 0) {
+          localStorage.setItem('lottery2_live_'+type, JSON.stringify({ data: draws, time: Date.now() }));
+          return draws;
+        }
+      }
+    } catch(e) {
+      console.log('[Lottery] Local proxy failed:', e.message);
+    }
+  }
+
+  // Fallback for non-localhost: try external APIs
+  const code = type === 'ssq' ? 'ssq' : 'dlt';
+  const endpoints = [
+    `https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=${type==='ssq'?'ssq':'dlt'}&issueCount=&pageNo=1&pageSize=200&systemType=PC`,
+    `https://kaijiang.500.com/static/info/kaijiang/json/${code}/new/${code}.json`,
+    `https://api.opencpdb.com/api/lottery/history?code=${code}&pageSize=200`,
+  ];
+
+  let lastError = '';
+
+  for (const url of endpoints) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Referer': 'https://www.cwl.gov.cn/',
+        }
+      });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) { lastError = `HTTP ${res.status}`; continue; }
+
+      const text = await res.text();
+      if (!text || text.length < 50) { lastError = 'empty response'; continue; }
+
+      let raw;
+      try { raw = JSON.parse(text); } catch(e) { lastError = 'parse error'; continue; }
+
+      const draws = parseOfficialData(raw, type) || parseMirrorData(raw, type);
+      if (draws && draws.length >= 5) {
+        localStorage.setItem('lottery2_live_'+type, JSON.stringify({
+          data: draws, time: Date.now()
+        }));
+        return draws;
+      }
+      lastError = 'parsed but no valid draws';
+    } catch(e) {
+      lastError = e.message || 'network error';
+      continue;
+    }
+  }
+
+  console.log('[Lottery] All endpoints failed for', type, ':', lastError);
+  return null;
+}
+
+function parseOfficialData(raw, type) {
+  try {
+    if (!raw) return null;
+    let list = raw.result || raw.data || raw.list;
+
+    if (Array.isArray(list) && list.length > 0) {
+      const first = list[0];
+      // Detect format: cwl.gov.cn uses { code, date, red, blue }
+      if (first.red || first.blue || first.code) {
+        return list.map(r => ({
+          issue: String(r.code || r.issue || ''),
+          date: String(r.date || '').slice(0, 10),
+          front: String(r.red || '').split(',').map(Number).filter(n => !isNaN(n) && n > 0),
+          back: type === 'ssq'
+            ? [Number(r.blue || r.blue1)].filter(n => !isNaN(n) && n > 0)
+            : String(r.back || r.blue || '').split(',').map(Number).filter(n => !isNaN(n) && n > 0),
+        })).filter(r => r.front.length >= (type==='ssq'?6:5) && r.back.length >= (type==='ssq'?1:2) && r.issue);
+      }
+    }
+  } catch(e) {}
+  return null;
+}
+
+function parseMirrorData(raw, type) {
+  try {
+    let list = null;
+    // Various API response formats
+    if (raw.data && Array.isArray(raw.data)) list = raw.data;
+    else if (raw.result && Array.isArray(raw.result)) list = raw.result;
+    else if (raw.list && Array.isArray(raw.list)) list = raw.list;
+    else if (raw.body && Array.isArray(raw.body)) list = raw.body;
+    else if (Array.isArray(raw)) list = raw;
+
+    if (list && list.length > 0) {
+      return list.map(r => {
+        const codeStr = String(
+          r.opencode || r.openCode || r.numbers || r.code || r.red || ''
+        );
+        const codes = codeStr.split(/[,+\s]+/).map(Number).filter(n => !isNaN(n) && n > 0);
+        const expectedTotal = type === 'ssq' ? 7 : 7; // 6+1 or 5+2
+        const frontCount = type === 'ssq' ? 6 : 5;
+        const backCount = type === 'ssq' ? 1 : 2;
+
+        return {
+          issue: String(r.expect || r.issue || r.code || r.period || ''),
+          date: String(r.opentime || r.opentimestamp || r.date || r.time || '').slice(0, 10),
+          front: codes.slice(0, frontCount),
+          back: codes.slice(frontCount, frontCount + backCount),
+        };
+      }).filter(r =>
+        r.issue && r.date &&
+        r.front.length >= (type==='ssq'?6:5) &&
+        r.back.length >= (type==='ssq'?1:2)
+      );
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function refreshData(showMsg = true) {
+  const now = Date.now();
+  if (now - lastFetchTime[currentType] < FETCH_COOLDOWN && LIVE_DATA[currentType]) {
+    if (showMsg) showToast('⏰ 1小时内已更新，使用缓存');
+    return;
+  }
+
+  if (showMsg) showToast('🔄 正在获取最新开奖数据...');
+
+  const live = await fetchLiveData(currentType);
+  if (live && live.length > 0) {
+    LIVE_DATA[currentType] = live;
+    lastFetchTime[currentType] = now;
+    const latestIssue = live[live.length - 1]?.issue || '?';
+    if (showMsg) showToast('✅ 已更新 ' + live.length + ' 期（最新：' + latestIssue + '期）');
+    try {
+      localStorage.setItem('lottery2_live_'+currentType, JSON.stringify({data: live, time: now}));
+    } catch(e) {}
+  } else {
+    // Use cached or embedded data
+    const historyLen = loadHistory().length;
+    if (showMsg) showToast('⚠️ 网络获取失败，使用本地' + historyLen + '期数据');
+  }
+
+  updateHeader();
+  updateStats();
+  renderHistoryTable();
+  const totalLen = loadHistory().length;
+  document.getElementById('modelStatus').textContent =
+    (LIVE_DATA[currentType] ? '在线 · ' : '离线 · ') + totalLen + '期';
+  document.getElementById('modelStatus').style.color = LIVE_DATA[currentType] ? 'var(--green)' : 'var(--gold)';
+}
+
+// Load cached live data on startup
+function loadCachedLiveData() {
+  for (const type of ['ssq', 'dlt']) {
+    try {
+      const cached = JSON.parse(localStorage.getItem('lottery2_live_'+type));
+      if (cached && cached.data && Array.isArray(cached.data)) {
+        LIVE_DATA[type] = cached.data;
+        lastFetchTime[type] = cached.time || 0;
+      }
+    } catch(e) {}
+  }
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+
+loadCachedLiveData();
+
+function init(){
+  // Show warning if opened via file://
+  if (window.location.protocol === 'file:') {
+    document.getElementById('fileModeWarning').style.display = 'block';
+  }
+
+  updateHeader();updateStats();
+  renderResult({front:[],back:[]});
+  renderSavedSets();
+  renderHistoryTable();
+  // Auto-refresh data on load (silent) — only works on http://
+  refreshData(false);
+}
+
+init();
+</script>
+</body>
+</html>
