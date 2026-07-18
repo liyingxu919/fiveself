@@ -1538,28 +1538,24 @@ document.addEventListener('keydown',e=>{
 // ═══════════════════════════════════════════
 
 async function fetchLiveData(type) {
-  // If served from localhost, use the built-in proxy (bypasses CORS entirely)
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-  if (isLocal) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
-      const res = await fetch(`/api/lottery?type=${type}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        const draws = await res.json();
-        if (draws && draws.length > 0) {
-          localStorage.setItem('lottery2_live_'+type, JSON.stringify({ data: draws, time: Date.now() }));
-          return draws;
-        }
+  // Always use same-origin proxy first (works everywhere)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    const res = await fetch(`/api/lottery-proxy?type=${type}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const draws = await res.json();
+      if (draws && Array.isArray(draws) && draws.length > 0 && !draws.error) {
+        localStorage.setItem('lottery2_live_'+type, JSON.stringify({ data: draws, time: Date.now() }));
+        return draws;
       }
-    } catch(e) {
-      console.log('[Lottery] Local proxy failed:', e.message);
     }
+  } catch(e) {
+    console.log('[Lottery] Proxy failed:', e.message);
   }
 
-  // Fallback for non-localhost: try external APIs
+  // Fallback: try external APIs (may work on some networks)
   const code = type === 'ssq' ? 'ssq' : 'dlt';
   const endpoints = [
     `https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=${type==='ssq'?'ssq':'dlt'}&issueCount=&pageNo=1&pageSize=200&systemType=PC`,
