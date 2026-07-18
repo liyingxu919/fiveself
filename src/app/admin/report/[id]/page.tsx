@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { toPng } from "html-to-image";
 
 export default function AdminReportEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -51,7 +52,6 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
   if (!report) return <div style={{ padding: 60, textAlign: "center", color: "#666" }}>报告未找到</div>;
 
   const c = report.content;
-  const ms = c?.mingShu || {};
   const dm = c?.dayMaster;
   const dmC = ({"木":"#7A9A7B","火":"#C0806E","土":"#B8956A","金":"#8C827A","水":"#6A8AA0"} as any)[dm?.wuxing] || "#B8956A";
   const s = c?.shiShen || {};
@@ -60,6 +60,9 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
   const gj = c?.geJu || {};
   const dy = c?.dayun || [];
   const ys = c?.disuitianshu || {};
+  const aiMingShu = c?.aiMingShu || "";
+  const hasAi = aiMingShu && !aiMingShu.startsWith("[Gemini");
+  const geminiErr = aiMingShu.startsWith("[Gemini") ? aiMingShu : c?.geminiError || "";
 
   return (
     <div style={{ fontFamily: "Georgia,'Noto Serif SC',serif", background: "#f5efe6", minHeight: "100vh", color: "#3c342e" }}>
@@ -99,11 +102,23 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
           {showEdit && <EditFields prefix="baziDisplay" obj={c?.baziDisplay} update={updateField} fields={["year","month","day","hour","yearEn","monthEn","dayEn","hourEn"]} />}
         </Section>
 
-        {/* 排盘正文 */}
-        {ms.paiPan && <Section title="排盘详解"><P>{ms.paiPan}</P></Section>}
-
-        {/* 日主 */}
-        {ms.riZhu && <Section title="日主分析"><P>{ms.riZhu}</P></Section>}
+        {/* ═══ AI 命书卷轴 (Gemini/DeepSeek) ═══ */}
+        {hasAi ? (
+          <MingShuScrollPreview aiMingShu={aiMingShu} customerName={report.customerName} baziDisplay={c?.baziDisplay} dayMaster={dm} />
+        ) : geminiErr ? (
+          <Section title="AI命书状态">
+            <div style={{padding:20,textAlign:"center",background:"#fff8f0",border:"1px solid #e8d5b8"}}>
+              <p style={{fontSize:15,color:"#c08070",margin:"0 0 8px"}}>AI命书生成失败</p>
+              <p style={{fontSize:12,color:"#8c8076",margin:0,wordBreak:"break-all"}}>{geminiErr.slice(0,300)}</p>
+            </div>
+          </Section>
+        ) : (
+          <Section title="AI命书状态">
+            <div style={{padding:20,textAlign:"center",background:"#f8f8f8",border:"1px solid #e0e0e0"}}>
+              <p style={{fontSize:15,color:"#999",margin:0}}>AI命书尚未生成（旧版报告）</p>
+            </div>
+          </Section>
+        )}
 
         {/* 格局 */}
         {gj.name && <Section title={`格局：${gj.name}`}><P>{gj.analysis}</P></Section>}
@@ -117,33 +132,65 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
         {/* 用神 */}
         {ys.analysis && <Section title="用神"><P>{ys.analysis}{ys.yongshenEn && <><br/><span style={{fontSize:12,color:"#8c8076"}}>{ys.analysisEn}</span></>}</P></Section>}
 
-        {/* 性格/事业/财运/感情/健康 */}
-        {ms.personality && <Section title="性格分析"><P>{ms.personality}</P></Section>}
-        {ms.career && <Section title="事业方向"><P>{ms.career}</P></Section>}
-        {ms.wealth && <Section title="财运分析"><P>{ms.wealth}</P></Section>}
-        {ms.relationships && <Section title="感情婚姻"><P>{ms.relationships}</P></Section>}
-        {ms.health && <Section title="健康提示"><P>{ms.health}</P></Section>}
-
-        {/* 流年 */}
-        {ms.fortune2026 && <Section title="2026 丙午流年"><P>{ms.fortune2026}</P></Section>}
-
         {/* 大运 */}
         {dy.length > 0 && <Section title="大运流年"><div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>{dy.map((d2:any,i:number)=><div key={i} style={{background:"#fff",border:"1px solid #e5dcd1",padding:"14px 16px"}}><p style={{fontSize:13,fontWeight:600,margin:"0 0 2px"}}>{d2.age} {d2.ganzhi} · 纳音{d2.nayin}</p><p style={{fontSize:12,lineHeight:1.8,color:"#5c4a3e",margin:0}}>{d2.analysis}</p></div>)}</div></Section>}
-
-        {/* 建议 */}
-        {ms.advice && <Section title="综合建议"><P style={{whiteSpace:"pre-line"}}>{ms.advice}</P></Section>}
 
         {/* 可编辑字段(折叠) */}
         {showEdit && (
           <div style={{ marginTop: 48, padding: 24, background: "#fff", border: "1px solid #e5dcd1" }}>
             <h2 style={{ fontSize: 18, margin: "0 0 16px" }}>编辑字段</h2>
             <EditSection title="日主" obj={dm} update={updateField} fields={["gan","wuxing"]} prefix="dayMaster" />
-            <EditSection title="排盘" obj={ms} update={updateField} fields={["paiPan","riZhu","personality","career","wealth","relationships","health","fortune2026","advice"]} prefix="mingShu" textarea />
+            <EditSection title="AI命书(手动编辑)" obj={{aiMingShu}} update={(p: string, v: string) => updateField("aiMingShu", v)} fields={["aiMingShu"]} prefix="" textarea />
             <EditSection title="用神" obj={ys} update={updateField} fields={["yongshen","analysis"]} prefix="disuitianshu" />
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function MingShuScrollPreview({ aiMingShu, customerName, baziDisplay, dayMaster }: any) {
+  const sections = aiMingShu.split(/(?=一、|二、|三、|四、|五、|六、|七、)/).filter((s: string) => s.trim());
+  return (
+    <Section title="AI命书卷轴 · 审核预览">
+      <div style={{
+        background: "#f3ede3",
+        border: "1px solid #d4c5a9",
+        padding: "40px 36px",
+        fontFamily: "\"Noto Serif SC\",\"STSong\",serif",
+        color: "#2b2318",
+        fontSize: 14,
+        lineHeight: 2.2,
+        boxShadow: "0 4px 24px rgba(80,60,30,0.1)",
+        position: "relative",
+      }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 32, borderBottom: "1px solid #d4c5a9", paddingBottom: 24 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 400, letterSpacing: "0.3em", margin: "0 0 8px" }}>八字命书</h2>
+          <div style={{ width: 40, height: 1.5, background: "#b8956a", margin: "0 auto 12px" }} />
+          <p style={{ fontSize: 13, color: "#5c4e3d", margin: 0 }}>
+            {customerName} · {baziDisplay?.year} {baziDisplay?.month} {baziDisplay?.day} {baziDisplay?.hour} · 日主{dayMaster?.gan}({dayMaster?.wuxing})
+          </p>
+        </div>
+        {/* Body */}
+        {sections.length > 0 ? sections.map((sec: string, i: number) => {
+          const lines = sec.trim().split("\n");
+          const title = lines[0];
+          const body = lines.slice(1).join("\n").trim();
+          return (
+            <div key={i} style={{ marginBottom: 24 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: "#3c2e1e", margin: "0 0 8px", borderLeft: "2px solid #b8956a", paddingLeft: 10 }}>{title}</h3>
+              <p style={{ margin: 0, textIndent: "2em", whiteSpace: "pre-wrap" }}>{body}</p>
+            </div>
+          );
+        }) : <p style={{whiteSpace:"pre-wrap",textIndent:"2em"}}>{aiMingShu}</p>}
+        {/* Seal */}
+        <div style={{ textAlign: "right", marginTop: 32, paddingTop: 20, borderTop: "1px solid #e0d5c0" }}>
+          <div style={{ display: "inline-flex", width: 48, height: 48, border: "2px solid #b84040", color: "#b84040", fontSize: 13, fontWeight: 700, alignItems: "center", justifyContent: "center", transform: "rotate(-6deg)" }}>八字<br/>合验</div>
+          <p style={{ fontSize: 9, color: "#b8956a", margin: "4px 0 0" }}>五玄斋出品</p>
+        </div>
+      </div>
+    </Section>
   );
 }
 

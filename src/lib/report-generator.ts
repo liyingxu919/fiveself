@@ -29,18 +29,6 @@ export interface ReportContent {
   shenSha:string[];
   /** 格局 */
   geJu:{name:string;analysis:string};
-  /** 命书全文 */
-  mingShu:{
-    paiPan:string;riZhu:string;yongShen:string;geJu:string;
-    personality:string;personalityEn:string;
-    career:string;careerEn:string;
-    wealth:string;wealthEn:string;
-    relationships:string;relationshipsEn:string;
-    health:string;healthEn:string;
-    dayunAnalysis:string;
-    fortune2026:string;fortune2026En:string;
-    advice:string;adviceEn:string;
-  };
 }
 
 /* ═══ 藏干表 ═══ */
@@ -161,49 +149,8 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
   const ss=cgAna; const shenSha=calcAllShenSha(b); const gj=calcGeJu(b,dw);
   const ygz=`${b.yearPillar.ganName}${b.yearPillar.zhiName}`,mgz=`${b.monthPillar.ganName}${b.monthPillar.zhiName}`,dgz=`${b.dayPillar.ganName}${b.dayPillar.zhiName}`,hgz=`${b.hourPillar.ganName}${b.hourPillar.zhiName}`;
 
-  const paiPan=`命主${nm}，八字四柱：${ygz}年 ${mgz}月 ${dgz}日 ${hgz}时。`
-    +`年柱${ygz}，纳音${["海中金","炉中火","大林木","路旁土","剑锋金","山头火","涧下水","城头土","白蜡金","杨柳木","泉中水","屋上土","霹雳火","松柏木","长流水","沙中金","山下火","平地木","壁上土","金箔金","佛灯火","天河水","大驿土","钗钏金","桑柘木","大溪水","沙中土","天上火","石榴木","大海水"][(b.yearPillar.gan*12+b.yearPillar.zhi)%30]||"未知"}，属${b.shengXiao}年。`
-    +`月柱${mgz}，月令${DI_ZHI[mz]}，${["冬","冬","春","春","春","夏","夏","夏","秋","秋","秋","冬"][mz]}季。`
-    +`日柱${dgz}，日主${dmN}，五行属${dmWxN}。时柱${hgz}，${b.hourPillar.zhi===0?"子时，分早晚子时细分":""}。`;
-  const riZhu=`日主${dmN}，五行${dmWxN}，生于${DI_ZHI[mz]}月。`
-    +`${dw===0?`甲木参天，有担当之志，${lv==="偏旺"?"得令身强，更显栋梁之质":"失令身弱，虽有雄心需时运相济"}.`:""}`
-    +`${dw===1?`丙火太阳，光明磊落，${lv==="偏旺"?"火势炎炎，热情充沛，有领导魅力":"火弱需木助，待时而发"}.`:""}`
-    +`${dw===2?`戊己土厚，诚信稳重，${lv==="偏旺"?"土厚载物，有包容之心和实干之力":"土虚需火生扶，根基渐固"}.`:""}`
-    +`${dw===3?`庚辛金刚，刚毅果断，${lv==="偏旺"?"金锐有力，是非分明，执行力强":"金弱需土生，磨砺方成器"}.`:""}`
-    +`${dw===4?`壬癸水柔，智慧灵动，${lv==="偏旺"?"水势浩荡，思维敏捷，适应力极强":"水弱需金生，深藏待用"}.`:""}`;
   const ysExpl=`${lv==="偏旺"?(ws>=wk?`日主强旺，食伤(${WUXING_NAMES[(dw+1)%5]})有力，取食伤泄秀为用，喜${ysN}${lv}:`:`日主强旺，官杀(${WUXING_NAMES[(dw+2)%5]})有制，取财星生官或用食伤制杀，喜${ysN}:`):lv==="偏弱"?(sw>=kw?`日主偏弱，印星帮扶有力，取${ysN}为用神`:`日主偏弱，官杀较旺，取印星化杀生身，喜${ysN}`):`日主中和，取${ysN}为用，平衡全局`}。`
     +`用神${ysN}，喜神${WUXING_NAMES[(ysI+4)%5]}，忌神${WUXING_NAMES[(ysI+2)%5]}。${ysN}能${ysI===(dw+4)%5?"生扶日主":"制衡全局"}。`;
-  const dyAna=calcDayunAccurate(b, "male", bd.split("-")[1] ? parseInt(bd.split("-")[1]) : 6, bd.split("-")[2] ? parseInt(bd.split("-")[2]) : 15).map(d => ({age:`${d.age}岁`,ganzhi:d.ganzhi,nayin:d.nayin,wuxing:"土",desc:"",analysis:d.analysis})).map(d=>`${d.age}起${d.ganzhi}运，纳音${d.nayin}，${d.analysis}`).join("\n");
-
-  const per=`日主${dmN}，${dmWxN}性。${dw===0?"木主仁，正直有担当，积极向上。":dw===1?"火主礼，热情有活力，富感染力。":dw===2?"土主信，厚道稳重，值得信赖。":dw===3?"金主义，刚毅果敢，是非分明。":"水主智，聪慧灵活，善于变通。"}`
-    +`${shenSha.includes("天乙贵人")?"命带天乙贵人，一生多得贵人相助，逢凶化吉。":""}`
-    +`${shenSha.includes("文昌星")?"文昌入命，聪明好学，有文化修养。":""}`
-    +`${shenSha.includes("华盖")?"华盖星照命，性喜清静，有艺术或玄学天赋。":""}`
-    +`${shenSha.includes("桃花")?"带桃花，人缘好，异性缘分佳。":""}`
-    +`${shenSha.includes("羊刃")?"羊刃在局，个性刚烈，有魄力但需防冲动。":""}`
-    +`${shenSha.includes("驿马")?"驿马星动，好动不喜静，适合外出发展。":""}`
-    +`月令入${gj.name}，${gj.analysis.replace("月令"+DI_ZHI[mz]+"，本气"+CANG_GAN[DI_ZHI[mz]][0]+"，入"+gj.name+"。","")}`;
-  const perEn=`Day Master ${dmN} (${dmWxE}). ${dw===0?"Wood: upright and ambitious.":dw===1?"Fire: passionate and charismatic.":dw===2?"Earth: reliable and steadfast.":dw===3?"Metal: decisive and principled.":"Water: intelligent and adaptable."} ${shenSha.length>0?"Special stars: "+shenSha.join(", ")+".":""}`;
-
-  const car=`日主${lv==="偏旺"?"强旺":"中和"}，${gj.name}入格。`
-    +`${dw===0?"木命人适合文教、出版、园林、中医、生态农业、环保等行业。":dw===1?"火命人适合能源、餐饮、文化传媒、教育培训、互联网科技等行业。":dw===2?"土命人适合房地产、建筑、矿产、农业、仓储物流、行政等行业。":dw===3?"金命人适合金融、法律、机械制造、精密仪器、军警等行业。":"水命人适合水利、航运、贸易、旅游、咨询服务等行业。"}`
-    +`用神${ysN}，大利${ysN==="木"?"东方":ysN==="火"?"南方":ysN==="土"?"中部":ysN==="金"?"西方":"北方"}。`
-    +`${ws>2?"食伤有力，有技术特长和创造力，适合专业技术岗位或自主创业。":""}${kw>2?"官杀有力，有领导才能和管理能力，适合公务员或企业管理岗位。":""}${wk>2?"财星有力，善于理财和经商，适合商业和投资领域。":""}`;
-  const carEn=`Day Master ${lv}. ${gj.name} pattern. Favorable ${ysE} industries and ${ysE==="Wood"?"East":ysE==="Fire"?"South":ysE==="Earth"?"Center":ysE==="Metal"?"West":"North"} direction.`;
-
-  const wea=`${wk>2?`财星${wk}重，${lv==="偏旺"?"身强能胜财，财运佳，适合主动求财":"身弱财旺，需注意理财，避免过度投机"}。`:wk===0?`财星不显，不宜冒险投资，宜稳健理财。`:lv==="偏旺"?`身强有财，财运稳健。`:`财星适中，足以养命。`}`
-    +`${shenSha.includes("禄神")?"命带禄神，一生衣食无忧，有稳定收入来源。":""}`;
-  const weaEn=`Wealth star ${wk>2?"strong":wk===0?"absent":"moderate"}. ${lv==="偏旺"?"Capable of managing wealth.":"Caution with investments."}`;
-
-  const rel=`${dw===0?"木性仁慈，待人真诚，但有时过于耿直。":dw===1?"火性热烈，感情丰富主动，需注意情绪波动。":dw===2?"土性敦厚，重视家庭和稳定，不擅长浪漫但有长久的守护力。":dw===3?"金性刚直，对伴侣忠诚可靠，有时过于理性缺少柔情。":"水性柔善变，感情细腻，需注意安全感不足。"}`
-    +`${shenSha.includes("桃花")?"桃花入命，异性缘分较好，需分辨正缘偏缘。":""}`
-    +`${wk>3&&dw!==2?"财旺生官杀，异性缘佳，婚姻生活中需注意沟通。":""}`;
-  const relEn=`${dw===0?"Wood: sincere but direct.":dw===1?"Fire: passionate, manages emotions.":dw===2?"Earth: values family and stability.":dw===3?"Metal: loyal, can be too rational.":"Water: sensitive, seeks security."}`;
-
-  const hea=`日主${lv}，${dw===0?"木主肝胆，注意作息规律，少熬夜。春冬季节注意保暖养肝。":dw===1?"火主心，避免过度劳累，保持心情平和。午时适当休息。":dw===2?"土主脾胃，饮食规律，少食生冷油腻。":dw===3?"金主肺，注意呼吸道和皮肤养护。秋冬季注意润肺。":"水主肾，注意保暖特别是腰部和足部。适当饮水。"}`
-    +`${missing.length>0?`缺${missing.map(m=>m.name).join("、")}，${missing.map(m=>m.name).join("、")}对应的脏腑功能较弱，需在饮食和运动中注意补益。`:""}`
-    +`${kw>4?"官杀过旺，压力对健康的影响较大，需学会放松和调节。":""}`;
-  const heaEn=`Day Master ${lv}. ${dw===0?"Liver/gallbladder care.":dw===1?"Heart health, avoid overwork.":dw===2?"Digestive health, eat regularly.":dw===3?"Respiratory/skin care.":"Kidney health, stay warm."}`;
 
   let f26=`2026年丙午，流年天干丙火，地支午火。`;
   if(ysN==="火") f26+=`用神到位，流年大利事业发展和个人成长，宜积极进取。${dw===0?"木得火泄，才华得以展现，利于创意和表达。":dw===2?"火生土，帮身有力，事业上升期。":"用神得力，把握时机。"}`;
@@ -215,19 +162,6 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
   else if (ysE === "Water") f26EnText = "Challenging — caution advised.";
   const f26En = `2026 Bing Wu (Fire Horse) year. ${f26EnText}`;
 
-  let advAct = "";
-  if (lv === "偏旺") {
-    const acts: Record<number,string> = {0:"多做创意性工作",1:"多表达和社交",2:"多运动消耗",3:"多分析和规划",4:"多学习交流"};
-    advAct = `宜泄耗，用${ysN}平衡自身。${acts[dw]||""}`;
-  } else if (lv === "偏弱") {
-    advAct = `宜生扶，补${ysN}增强自身.`;
-  }
-  const dirs: Record<string,string> = {"木":"东方","火":"南方","土":"中部","金":"西方","水":"北方"};
-  let adv3 = "";
-  if (shenSha.includes("驿马")) adv3 += "驿马入命，宜外出发展，不宜久居一地.";
-  if (shenSha.includes("华盖")) adv3 += "华盖照命，宜修身养性，有玄学天赋.";
-  const adv = `一、${advAct}\n二、方位大利${dirs[ysN]||"中"},忌${WUXING_NAMES[(ysI+2)%5]}方.\n三、${adv3}`;
-  const advEn=`1. ${lv==="偏旺"?"Balance with "+ysE:"Strengthen with "+ysE}. 2. Favorable direction: ${ysE==="Wood"?"East":ysE==="Fire"?"South":ysE==="Earth"?"Center":ysE==="Metal"?"West":"North"}.`;
 
   const cp:Record<number,Array<{hex:string;name:string;use:string}>>={
     0:[{hex:"#7A9A7B",name:"苍绿",use:"主色"},{hex:"#A8C8A0",name:"嫩绿",use:"辅色"},{hex:"#5B4030",name:"深棕",use:"配色"},{hex:"#F5EFE6",name:"暖白",use:"底色"},{hex:"#C0806E",name:"陶土红",use:"点缀"}],
@@ -267,7 +201,6 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
     shiShen:{year:ySS,month:mSS,day:getShiShen(dg,dg),hour:hSS,explanation:ssExplain},
     cangGan:{year:cgY,month:cgM,day:cgD,hour:cgH,analysis:cgAna},
     shenSha,geJu:gj,
-    mingShu:{paiPan,riZhu,yongShen:ysExpl,geJu:`月令入${gj.name}。${gj.analysis}`,personality:per,personalityEn:perEn,career:car,careerEn:carEn,wealth:wea,wealthEn:weaEn,relationships:rel,relationshipsEn:relEn,health:hea,healthEn:heaEn,dayunAnalysis:dyAna,fortune2026:f26,fortune2026En:f26En,advice:adv,adviceEn:advEn},
   };
 }
 
