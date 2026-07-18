@@ -2,7 +2,6 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { toPng } from "html-to-image";
 
 export default function AdminReportEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
