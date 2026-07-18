@@ -76,10 +76,10 @@ function parseResponse(fullText: string): { text: string; blueprint: any } {
   return { text: mingshuText, blueprint };
 }
 
-/** 主模型: Gemini 2.5 Flash */
+/** 主模型: Gemini 2.0 Flash */
 async function callGemini(prompt: string): Promise<string> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -143,7 +143,7 @@ export async function generateMingShu(input: MingShuInput): Promise<MingShuResul
     try {
       const raw = await callGemini(prompt);
       const parsed = parseResponse(raw);
-      return { ...parsed, provider: "gemini-2.5-flash" };
+      return { ...parsed, provider: "gemini-2.0-flash" };
     } catch (e: any) {
       const geminiErr = e?.message || String(e);
       console.warn("[Gemini failed, trying DeepSeek]:", geminiErr);
@@ -159,7 +159,8 @@ export async function generateMingShu(input: MingShuInput): Promise<MingShuResul
         }
       }
 
-      return { error: geminiErr };
+      // DeepSeek not configured — return Gemini error with hint
+      return { error: `${geminiErr} | DeepSeek未配置（在Vercel加DEEPSEEK_API_KEY即可自动切换）` };
     }
   }
 
