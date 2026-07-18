@@ -9,19 +9,32 @@ export async function GET(request: Request) {
 
   try {
     if (type === "ssq") {
-      const url = "https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=ssq&issueCount=&pageNo=1&pageSize=200&systemType=PC";
-      const res = await fetch(url, { headers: { Referer: "https://www.cwl.gov.cn/" } });
-      const raw = await res.json();
-      if (raw.result && Array.isArray(raw.result)) {
-        const draws = raw.result.map((r: any) => ({
-          issue: String(r.code || ""),
-          date: String(r.date || "").slice(0, 10).replace(/\(.\)$/, ""),
-          front: (r.red || "").split(",").map(Number).filter((n: number) => n > 0),
-          back: [Number(r.blue)].filter((n: number) => n > 0),
-        }));
-        draws.reverse();
-        return NextResponse.json(draws);
+      // cwl.gov.cn blocks overseas IPs, use 500.com instead
+      const url = "https://datachart.500.com/ssq/history/newinc/history.php?start=25033&end=26999";
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0", Referer: "https://datachart.500.com/" },
+      });
+      const html = await res.text();
+      const draws: any[] = [];
+      const rows = html.match(/<tr class="t_tr1">[\s\S]*?<\/tr>/g) || [];
+      for (const row of rows) {
+        // 500.com uses 5-digit issue for SSQ: 26081 → convert to 7-digit 2026081
+        const issueM = row.match(/<td[^>]*>(\d{5})<\/td>/);
+        if (!issueM) continue;
+        const shortIssue = issueM[1];
+        const fullIssue = "20" + shortIssue; // 26081 → 2026081
+        // 500.com SSQ uses class="t_cfont2" for front, "t_cfont4" for back
+        const frontBalls = (row.match(/class="t_cfont2"[^>]*>(\d+)</g) || []).map((s: string) => parseInt(s.match(/>(\d+)</)![1]));
+        const backBalls = (row.match(/class="t_cfont4"[^>]*>(\d+)</g) || []).map((s: string) => parseInt(s.match(/>(\d+)</)![1])).filter((n: number) => !isNaN(n));
+        const dateM = row.match(/<td>(\d{4}-\d{2}-\d{2})<\/td>/g);
+        const date = dateM ? dateM[dateM.length - 1].replace(/<\/?td>/g, "") : "";
+        if (frontBalls.length >= 6 && backBalls.length >= 1) {
+          const exists = draws.find((d: any) => d.issue === fullIssue);
+          if (!exists) draws.push({ issue: fullIssue, date, front: frontBalls.slice(0, 6), back: backBalls.slice(0, 1) });
+        }
       }
+      draws.sort((a: any, b: any) => a.issue.localeCompare(b.issue));
+      return NextResponse.json(draws.slice(-200));
     } else {
       const url = "https://datachart.500.com/dlt/history/newinc/history.php?start=25050&end=26999";
       const res = await fetch(url, {
