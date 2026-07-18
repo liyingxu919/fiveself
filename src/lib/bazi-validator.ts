@@ -95,27 +95,21 @@ function extractGeJuClaim(text: string): string {
 
 /**
  * 验证AI命书文本与计算值的匹配度
+ * 检查: 十神、格局、用神、日主强弱、神煞
  */
 export function validateMingShu(aiText: string, facts: BaziFacts): ValidationResult {
   const errors: ValidationError[] = [];
 
-  // 1. 验证十神
+  // 1. 验证十神 (同前)
   const pillars: Array<"年" | "月" | "日" | "时"> = ["年", "月", "日", "时"];
   for (const p of pillars) {
     const expected = facts.shiShen[p];
     if (!expected) continue;
     const claims = extractShiShenClaims(aiText, p);
-    // 检查claims中是否有expected，或没有冲突的十神
     if (claims.length > 0 && !claims.includes(expected)) {
-      // Check if there's a conflicting claim
       const hasConflict = claims.some(c => c !== expected);
       if (hasConflict) {
-        errors.push({
-          field: `${p}柱十神`,
-          expected,
-          found: claims.join(","),
-          severity: "critical",
-        });
+        errors.push({ field: `${p}柱十神`, expected, found: claims.join(","), severity: "critical" });
       }
     }
   }
@@ -124,40 +118,65 @@ export function validateMingShu(aiText: string, facts: BaziFacts): ValidationRes
   if (facts.geJu) {
     const claimed = extractGeJuClaim(aiText);
     if (claimed && claimed !== facts.geJu && !claimed.includes(facts.geJu.replace("格", ""))) {
-      errors.push({
-        field: "格局",
-        expected: facts.geJu,
-        found: claimed,
-        severity: "critical",
-      });
+      errors.push({ field: "格局", expected: facts.geJu, found: claimed, severity: "critical" });
+    }
+  }
+
+  // 3. 验证用神 (新增)
+  if (facts.yongShen && facts.yongShen !== "待定") {
+    const yongShenPatterns = [
+      new RegExp(`用神[为是：:]*\\s*${facts.yongShen}`),
+      new RegExp(`喜${facts.yongShen}`),
+      new RegExp(`${facts.yongShen}[\\s，。]*为用`),
+    ];
+    const foundYongShen = yongShenPatterns.some(re => re.test(aiText));
+    if (!foundYongShen) {
+      // Check if AI used a different 用神
+      const wrongYongShen = aiText.match(/用神[为是：:]*\s*([^\s，。,\n]{1,2})/);
+      if (wrongYongShen && wrongYongShen[1] !== facts.yongShen) {
+        errors.push({ field: "用神", expected: facts.yongShen, found: wrongYongShen[1], severity: "critical" });
+      }
+    }
+  }
+
+  // 4. 验证日主五行 (新增)
+  if (facts.dayMaster.wuxing) {
+    const wuxingNames = ["木", "火", "土", "金", "水"];
+    const dmWx = facts.dayMaster.wuxing;
+    // Check if AI mentions wrong wuxing for day master
+    for (const wx of wuxingNames) {
+      if (wx !== dmWx) {
+        const wrongPattern = new RegExp(`日主[^。，]{0,10}${wx}[^。，]{0,5}(?:性|命|人)`);
+        if (wrongPattern.test(aiText)) {
+          errors.push({ field: "日主五行", expected: `日主属${dmWx}`, found: `文中提到日主${wx}`, severity: "critical" });
+          break;
+        }
+      }
+    }
+  }
+
+  // 5. 验证神煞 (新增)
+  if (facts.shenSha && facts.shenSha.length > 0) {
+    for (const ss of facts.shenSha) {
+      if (!aiText.includes(ss)) {
+        errors.push({ field: "神煞", expected: `应包含${ss}`, found: `文中未提及${ss}`, severity: "warning" });
+      }
     }
   }
 
   // Build correction note
   let correctionNote = "";
   if (errors.length > 0) {
-    const criticalErrors = errors.filter(e => e.severity === "critical");
-    correctionNote = `【重要纠正】以下数据错误，请按照正确值重新撰写命书：\n`;
+    correctionNote = `【八字数据校验发现 ${errors.length} 个问题】\n`;
     for (const e of errors) {
-      correctionNote += `- ${e.field}: 你写的是"${e.found}"，正确的是"${e.expected}"\n`;
+      correctionNote += `- [${e.severity}] ${e.field}: 应为"${e.expected}"，文中为"${e.found}"\n`;
     }
-
-    // Add explicit 十神 reference
-    correctionNote += `\n正确十神参考：\n`;
+    correctionNote += `\n正确参考数据：\n`;
     for (const p of pillars) {
-      if (facts.shiShen[p]) {
-        correctionNote += `- ${p}柱: ${facts.shiShen[p]}\n`;
-      }
+      if (facts.shiShen[p]) correctionNote += `  ${p}柱十神: ${facts.shiShen[p]}\n`;
     }
-    correctionNote += `\n格局: ${facts.geJu}\n`;
-    correctionNote += `用神: ${facts.yongShen}\n`;
-
-    correctionNote += `\n请严格按照以上正确数据重新生成命书，不要再使用错误的十神和格局。`;
+    correctionNote += `  格局: ${facts.geJu}\n  用神: ${facts.yongShen}\n  日主: ${facts.dayMaster.gan}(${facts.dayMaster.wuxing})\n`;
   }
 
-  return {
-    passed: errors.length === 0,
-    errors,
-    correctionNote,
-  };
+  return { passed: errors.length === 0, errors, correctionNote };
 }

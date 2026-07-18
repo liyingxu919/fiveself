@@ -73,6 +73,7 @@ export async function POST(request: Request) {
       wuxing: fullContent.elementAnalysis?.profile || "",
       shiShen: fullContent.shiShen?.explanation || "",
       birthplace: birthplace || "",
+      gender: g,
       yongShen: yongShen,
       yongShenEn: yongShenEn,
       yongShenDirection: dirMap[yongShenIdx] || "",
@@ -82,7 +83,6 @@ export async function POST(request: Request) {
     let aiMingShu = "";
     let aiBlueprint: any = null;
     let geminiError = "";
-    let validationRetries = 0;
 
     try {
       const result = await generateMingShu(mingShuInput);
@@ -90,32 +90,15 @@ export async function POST(request: Request) {
         conciseMingShu = result.concise || result.full || "";
         fullMingShu = result.full || result.concise || "";
         aiMingShu = fullMingShu;
+        aiBlueprint = result.blueprint || null;
 
-        // Validate AI output against calculated bazi facts
+        // Validation: check but don't retry (to avoid doubling wait time)
+        // Warnings are saved for admin review
         const facts = extractBaziFacts(fullContent);
         const validation = validateMingShu(fullMingShu, facts);
-
-        if (!validation.passed && validationRetries < 1 && result.provider) {
-          // Retry with correction notes
-          validationRetries++;
-          const correctedInput = {
-            ...mingShuInput,
-            bazi: `${mingShuInput.bazi}\n\n${validation.correctionNote}`,
-          };
-          try {
-            const retryResult = await generateMingShu(correctedInput);
-            if (retryResult?.full) {
-              fullMingShu = retryResult.full;
-              conciseMingShu = retryResult.concise || retryResult.full;
-              aiMingShu = fullMingShu;
-            }
-          } catch { /* keep original if retry fails */ }
-        } else if (!validation.passed) {
-          // Still has errors but no more retries — still save original, flag for admin
-          geminiError = `Validation warnings: ${validation.errors.map(e => `${e.field}: expected ${e.expected}, got ${e.found}`).join("; ")}`;
+        if (!validation.passed) {
+          geminiError = `[校验提醒] ${validation.errors.map(e => `${e.field}:应为${e.expected},文中为${e.found}`).join("; ")}`;
         }
-
-        aiBlueprint = result.blueprint || null;
       } else if (result?.error) {
         geminiError = result.error;
         aiMingShu = `[Gemini: ${result.error}]`;
