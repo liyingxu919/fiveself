@@ -175,7 +175,8 @@ body{
   <div id="analysisInline" style="display:none;margin-top:12px"></div>
   <div class="btn-row">
     <button class="btn btn-primary" onclick="predictAI()">🤖 AI神经网络预测</button>
-    <button class="btn btn-outline" onclick="predictEnsemble()">🔬 多策略集成预测</button>
+    <button class="btn btn-outline" onclick="predictEnsemble()">🔬 多策略集成</button>
+    <button class="btn btn-primary" onclick="predictAdvanced()">🧬 高级集成预测</button>
     <button class="btn btn-outline btn-sm" onclick="predictRandom()">🎲 随机一注</button>
     <button class="btn btn-unlikely btn-sm" onclick="genUnlikelySet()">🚫 最不可能</button>
     <button class="btn btn-gan btn-sm" onclick="genGANSet()" style="background:linear-gradient(135deg,#6b21a8,#9333ea);color:#fff;border-color:#7c3aed">🧬 GAN反人类选号</button>
@@ -1139,6 +1140,211 @@ function renderGANAnalysis(sets){
   h+='📐 惩罚因子：生日数字(1-31) + 连号(如10,11,12) + 集中区间(所有号在10以内)';
   h+='</div>';
   el.innerHTML=h;
+}
+
+// ═══════════════════════════════════════════
+//  ADVANCED STRATEGIES — 012路/跨度/回测/智能筛选
+// ═══════════════════════════════════════════
+
+// ── 012路分析 ──
+function road012Analysis(nums){return nums.map(n=>n%3)} // 0=0路,1=1路,2=2路
+
+function road012Score(front, history){
+  // Analyze 012 road distribution in recent history, score how well this combo matches
+  const recent=history.slice(-50);
+  const roadCounts=[0,0,0]; // 0路,1路,2路 counts in each draw
+  const roadDist=[]; // distribution patterns
+  for(const r of recent){
+    const roads=road012Analysis(r.front);
+    const cnt=[0,0,0];roads.forEach(rd=>cnt[rd]++);
+    roadDist.push(cnt.join(':'));
+  }
+  // Count most common patterns
+  const patternFreq={};
+  for(const p of roadDist)patternFreq[p]=(patternFreq[p]||0)+1;
+
+  const myRoads=road012Analysis(front);
+  const myCnt=[0,0,0];myRoads.forEach(rd=>myCnt[rd]++);
+  const myPattern=myCnt.join(':');
+
+  const freq=patternFreq[myPattern]||0;
+  const maxFreq=Math.max(...Object.values(patternFreq));
+  return {pattern:myPattern,freq,score:Math.round(freq/Math.max(1,maxFreq)*100),common:freq>=recent.length*0.05};
+}
+
+// ── 跨度/和值/AC值筛选 ──
+function spanSumACFilter(front, history){
+  const c=cfg();const total=c.frontMax;
+  const recent=history.slice(-100);
+
+  // Historical span range
+  const spans=recent.map(r=>Math.max(...r.front)-Math.min(...r.front));
+  const spanMin=Math.min(...spans),spanMax=Math.max(...spans),spanAvg=spans.reduce((a,b)=>a+b,0)/spans.length;
+
+  // Historical sum range
+  const sums=recent.map(r=>r.front.reduce((a,b)=>a+b,0));
+  const sumMin=Math.min(...sums),sumMax=Math.max(...sums),sumAvg=sums.reduce((a,b)=>a+b,0)/sums.length;
+
+  const mySpan=Math.max(...front)-Math.min(...front);
+  const mySum=front.reduce((a,b)=>a+b,0);
+
+  // AC值 (离散度): count unique differences between pairs
+  const diffs=new Set();
+  for(let i=0;i<front.length;i++)for(let j=i+1;j<front.length;j++)diffs.add(Math.abs(front[i]-front[j]));
+  const myAC=diffs.size-(front.length-1);
+  const acValues=recent.map(r=>{const d=new Set();for(let i=0;i<r.front.length;i++)for(let j=i+1;j<r.front.length;j++)d.add(Math.abs(r.front[i]-r.front[j]));return d.size-(r.front.length-1)});
+  const acMin=Math.min(...acValues),acMax=Math.max(...acValues);
+
+  const warnings=[];
+  if(mySpan<spanMin||mySpan>spanMax)warnings.push('跨度异常('+mySpan+',历史'+spanMin+'-'+spanMax+')');
+  if(mySum<sumMin||mySum>sumMax)warnings.push('和值异常('+mySum+',历史'+sumMin+'-'+sumMax+')');
+  if(myAC<acMin||myAC>acMax)warnings.push('AC值异常('+myAC+',历史'+acMin+'-'+acMax+')');
+
+  return {
+    span:{value:mySpan,min:spanMin,max:spanMax,avg:Math.round(spanAvg),ok:mySpan>=spanMin&&mySpan<=spanMax},
+    sum:{value:mySum,min:sumMin,max:sumMax,avg:Math.round(sumAvg),ok:mySum>=sumMin&&mySum<=sumMax},
+    ac:{value:myAC,min:acMin,max:acMax,ok:myAC>=acMin&&myAC<=acMax},
+    warnings,passed:warnings.length===0
+  };
+}
+
+// ── 回测验证 ──
+function backtestPrediction(front, back, history, lookback){
+  // Test: if we had picked these numbers for past N draws, how many would match?
+  const testDraws=history.slice(-lookback);
+  let totalMatches=0,bestMatch=0;
+  for(const draw of testDraws){
+    let matches=0;
+    for(const n of front)if(draw.front.includes(n))matches++;
+    for(const n of back)if(draw.back.includes(n))matches++;
+    totalMatches+=matches;
+    if(matches>bestMatch)bestMatch=matches;
+  }
+  const c=cfg();
+  const expectPerDraw=(c.frontCount+c.backCount)/(c.frontMax+c.backMax)*lookback;
+  return {
+    totalMatches,
+    bestMatch,
+    avgPerDraw:(totalMatches/lookback).toFixed(2),
+    expectedPerDraw:expectPerDraw.toFixed(2),
+    aboveExpected:totalMatches>expectPerDraw
+  };
+}
+
+// ── 智能组合筛选（后处理过滤器） ──
+function smartFilterCombo(candidates, history){
+  // Filter out historically unlikely patterns
+  const filtered=[];
+  for(const combo of candidates){
+    const front=combo.front;
+    // Rule 1: No more than 3 consecutive numbers
+    let maxConsec=1,curConsec=1;
+    for(let i=1;i<front.length;i++){if(front[i]-front[i-1]===1){curConsec++;maxConsec=Math.max(maxConsec,curConsec)}else curConsec=1}
+    if(maxConsec>3)continue;
+
+    // Rule 2: No all-odd or all-even
+    const odds=front.filter(n=>n%2===1).length;
+    if(odds===0||odds===front.length)continue;
+
+    // Rule 3: Span should be reasonable (not too narrow)
+    const span=front[front.length-1]-front[0];
+    if(span<10)continue;
+
+    // Rule 4: 012 road balance (at least 2 different roads)
+    const roads=new Set(road012Analysis(front));
+    if(roads.size<2)continue;
+
+    filtered.push(combo);
+  }
+  return filtered;
+}
+
+// ── 高级集成预测（所有策略融合+后处理） ──
+function predictAdvanced(){
+  const c=cfg();const history=loadHistory();
+  const features=buildFeatures(history);
+  const scores=lstmScore(features,history);
+  const patterns=detectPatterns(history);
+
+  // Generate multiple candidates from different strategies
+  const candidates=[];
+  const strategies=[0.3,0.5,0.2,0.4,0.35,0.25,0.45,0.55,0.15,0.6];
+
+  for(const topBias of strategies){
+    const front=weightedPick(scores.front,c.frontCount,topBias);
+    const back=weightedPick(scores.back,c.backCount,0.4);
+    candidates.push({front,back,strategy:'advanced_'+topBias});
+  }
+
+  // Apply smart filters
+  const filtered=smartFilterCombo(candidates,history);
+
+  // Score each remaining candidate
+  const scored=filtered.map(combo=>{
+    const roadResult=road012Score(combo.front,history);
+    const filterResult=spanSumACFilter(combo.front,history);
+    const backtest=backtestPrediction(combo.front,combo.back,history,30);
+
+    // Composite score: road pattern frequency + filter pass + backtest above expected
+    let score=roadResult.score;
+    if(filterResult.passed)score+=20;
+    if(backtest.aboveExpected)score+=15;
+    score+=backtest.avgPerDraw*5;
+
+    return{...combo,score:Math.round(score),roadResult,filterResult,backtest};
+  });
+
+  scored.sort((a,b)=>b.score-a.score);
+
+  // Pick top 3
+  const top=scored.slice(0,3);
+  if(top.length===0){
+    // Fallback: use ensemble
+    predictEnsemble();return;
+  }
+
+  currentSets=top.map(t=>({front:t.front,back:t.back,strategy:'advanced',score:t.score,roadResult:t.roadResult,filterResult:t.filterResult,backtest:t.backtest}));
+  renderResult(currentSets[0]);
+  renderAdvancedAnalysis(currentSets);
+  predCounts[currentType]=(predCounts[currentType]||0)+1;
+  updateStats();showBtns();
+}
+
+function renderAdvancedAnalysis(sets){
+  const el=document.getElementById('analysisInline');
+  el.style.display='block';
+  const c=cfg();const history=loadHistory();
+
+  let html='<div style="background:#0a0a20;border:1px solid #333;border-radius:8px;padding:12px 16px">'+
+    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span class="strategy-badge" style="background:linear-gradient(135deg,rgba(0,200,255,.4),rgba(170,68,255,.4));color:#fff;border:1px solid rgba(150,200,255,.5)">🧬 高级集成预测 · 10策略+智能筛选</span>'+
+    '<span class="analysis-tag tag-purple">基于'+history.length+'期数据</span></div>';
+
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">';
+  sets.forEach(function(s,i){
+    const frontStr=s.front.map(function(n){return'<span style="color:#f44;font-weight:700;font-size:15px">'+String(n).padStart(2,'0')+'</span>'}).join(' ');
+    const backStr=s.back.map(function(n){return'<span style="color:#44f;font-weight:700;font-size:15px">'+String(n).padStart(2,'0')+'</span>'}).join(' ');
+    const road=s.roadResult||{};
+    const filt=s.filterResult||{};
+    const bt=s.backtest||{};
+
+    html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">';
+    html+='<div style="font-size:10px;color:var(--dim);margin-bottom:4px">方案'+(i+1)+' · 综合评分 <span style="color:var(--gold);font-size:14px;font-weight:700">'+s.score+'</span></div>';
+    html+='<div>'+frontStr+' | '+backStr+'</div>';
+    html+='<div style="font-size:9px;margin-top:4px;line-height:1.6">';
+    html+='<span style="color:'+(road.common?'#4c8':'#888')+'">012路:'+road.pattern+'('+road.score+'%)</span> ';
+    html+='<span style="color:'+(filt.passed?'#4c8':'#f84')+'">'+(filt.passed?'筛选通过':'⚠️'+filt.warnings.join(''))+'</span> ';
+    html+='<span style="color:'+(bt.aboveExpected?'#4c8':'#888')+'">回测均'+bt.avgPerDraw+'球/期</span>';
+    html+='</div></div>';
+  });
+  html+='</div>';
+
+  html+='<div class="insight-text" style="margin-top:8px">'+
+    '💡 <em>10种不同权重的LSTM采样</em> → 智能筛选(去连号/全奇偶/窄跨度) → '+
+    '<em>012路+跨度+AC值+回测</em> 综合评分取前3<br>'+
+    '每组合经过4层过滤优化，去除历史极端不合理的号码组合</div></div>';
+
+  el.innerHTML=html;
 }
 
 // ═══════════════════════════════════════════
