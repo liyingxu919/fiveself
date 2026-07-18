@@ -31,13 +31,30 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
     setReport({ ...report, content: newContent });
   };
 
+  // All hooks must be called before any conditional returns
+  const [conciseEdited, setConciseEdited] = useState("");
+  const [fullEdited, setFullEdited] = useState("");
+
+  // Initialize edited state once data loads
+  useEffect(() => {
+    if (report) {
+      const c = report.content;
+      const rc = c?.conciseMingShu || c?.aiMingShu || "";
+      const rf = c?.fullMingShu || c?.aiMingShu || "";
+      setConciseEdited(rc);
+      setFullEdited(rf);
+    }
+  }, [report]);
+
   const save = async () => {
+    if (!report) return;
     setSaving(true);
     await fetch("/api/admin/approve-send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reportId: id, email: null, editedContent: JSON.stringify(report.content), conciseMingShu: conciseEdited, fullMingShu: fullEdited }) });
     setSaving(false); alert("已保存");
   };
 
   const approveAndSend = async () => {
+    if (!report) return;
     if (!confirm("确认审核通过并发送邮件给客户？")) return;
     setSending(true);
     const res = await fetch("/api/admin/approve-send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reportId: id, email: report?.customerEmail, name: report?.customerName, editedContent: JSON.stringify(report.content), conciseMingShu: conciseEdited, fullMingShu: fullEdited }) });
@@ -59,12 +76,9 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
   const gj = c?.geJu || {};
   const dy = c?.dayun || [];
   const ys = c?.disuitianshu || {};
-  const rawConcise = c?.conciseMingShu || c?.aiMingShu || "";
   const rawFull = c?.fullMingShu || c?.aiMingShu || "";
   const hasAi = !!(rawFull && !rawFull.startsWith("[Gemini"));
   const geminiErr = rawFull.startsWith("[Gemini") ? rawFull : c?.geminiError || "";
-  const [conciseEdited, setConciseEdited] = useState(rawConcise);
-  const [fullEdited, setFullEdited] = useState(rawFull);
 
   return (
     <div style={{ fontFamily: "Georgia,'Noto Serif SC',serif", background: "#f5efe6", minHeight: "100vh", color: "#3c342e" }}>
