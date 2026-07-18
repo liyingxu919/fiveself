@@ -179,7 +179,8 @@ body{
     <button class="btn btn-primary" onclick="predictAdvanced()">🧬 高级集成预测</button>
     <button class="btn btn-outline btn-sm" onclick="predictRandom()">🎲 随机一注</button>
     <button class="btn btn-unlikely btn-sm" onclick="genUnlikelySet()">🚫 最不可能</button>
-    <button class="btn btn-gan btn-sm" onclick="genGANSet()" style="background:linear-gradient(135deg,#6b21a8,#9333ea);color:#fff;border-color:#7c3aed">🧬 GAN反人类选号</button>
+    <button class="btn btn-gan btn-sm" onclick="genGANSet()" style="background:linear-gradient(135deg,#6b21a8,#9333ea);color:#fff;border-color:#7c3aed">🧬 GAN反人类</button>
+    <button class="btn btn-sm" onclick="predictDirectorMind()" style="background:linear-gradient(135deg,#ff6600,#cc3300);color:#fff;border-color:#ff4400">🎭 主任心理学</button>
     <button class="btn btn-copy btn-sm" id="btnCopyOne" style="display:none" onclick="copyCurrent()">📋 复制</button>
     <button class="btn btn-save btn-sm" id="btnSaveOne" style="display:none" onclick="saveCurrent()">💾 保存</button>
   </div>
@@ -1345,6 +1346,218 @@ function renderAdvancedAnalysis(sets){
     '每组合经过4层过滤优化，去除历史极端不合理的号码组合</div></div>';
 
   el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+//  🎭 主任心理学 — 博弈论选号
+//  主任 = 后出手的石头剪刀布玩家，策略:
+//    90% 省钱模式: 选彩民最少买的号(冷号/禁忌号/大号/反常规)
+//    10% 放水模式: 偶尔开正常号维持可信度(不能太假)
+//  我们模拟主任的博弈心理来选号
+// ═══════════════════════════════════════════
+
+function directorUnpopularScore(n, history, freq, lastSeen){
+  // Score how UNPOPULAR a number is (higher = 主任 more likely to pick)
+  let score = 0;
+
+  // 1. Birthday avoidance: numbers >31 are less popular (fewer people bet on them)
+  if (n > 31) score += 40;
+  else if (n > 25) score += 20;
+  else if (n <= 12) score -= 10; // Many people bet on 1-12
+
+  // 2. Cultural unlucky numbers: people avoid these → 主任 can use safely
+  const unluckyTails = [4, 7]; // 4=死, 7 has mixed feelings
+  if (unluckyTails.includes(n % 10)) score += 25;
+
+  // 3. "Too lucky" numbers: 6, 8, 9 are over-bet → 主任 avoids
+  const luckyTails = [6, 8, 9];
+  if (luckyTails.includes(n % 10) && n > 10) score -= 15;
+
+  // 4. Cold numbers: nobody chasing them → director's safe pick
+  const totalDraws = history.length;
+  const f = freq[n] || 0;
+  const expectedFreq = (cfg().frontCount / cfg().frontMax) * totalDraws;
+  if (f < expectedFreq * 0.6) score += 30; // Significantly cold
+  else if (f > expectedFreq * 1.4) score -= 20; // Too hot, people chasing
+
+  // 5. Recently appeared numbers: people think "won't come again"
+  // → director can repeat to surprise (博弈反心理)
+  if (lastSeen[n] !== undefined && lastSeen[n] <= 3) score += 15;
+  else if (lastSeen[n] !== undefined && lastSeen[n] > 20) score += 10; // Long gap too
+
+  // 6. Pattern-breaking: consecutive numbers are predicted by many
+  // → director avoids making patterns too obvious
+
+  return score;
+}
+
+function directorAppeasementScore(n){
+  // "放水模式" score: how NATURAL this number looks
+  // Director occasionally needs to let a natural-looking combo through
+  let score = 0;
+
+  // Birthdays are natural
+  if (n <= 31) score += 10;
+  // Lucky numbers feel natural to players
+  if ([6, 8, 9, 16, 18, 28].includes(n)) score += 25;
+  // Numbers ending in 0, 2, 3, 5, 6, 8 feel "normal"
+  if (![4, 7].includes(n % 10)) score += 15;
+  // Small numbers feel more "pickable"
+  if (n <= 20) score += 5;
+
+  return score;
+}
+
+function predictDirectorMind(){
+  const c = cfg(); const history = loadHistory();
+  const totalDraws = history.length;
+
+  // ── Build frequency & last-seen maps ──
+  const freq = {}; const lastSeen = {};
+  for (let n = 1; n <= c.frontMax; n++) { freq[n] = 0; lastSeen[n] = -1; }
+  for (let i = 0; i < history.length; i++) {
+    for (const n of history[i].front) { freq[n]++; lastSeen[n] = history.length - 1 - i; }
+    if (history[i].back) for (const n of history[i].back) { /* track back separately */ }
+  }
+
+  // ── Determine director's current mode ──
+  // Check how many recent draws had "big winners" (if we can detect from data)
+  // Heuristic: if last draw had many "popular" numbers → director was in appeasement
+  // → next draw more likely to be saving mode
+  const lastDraw = history[history.length - 1];
+  let lastDrawPopularity = 0;
+  for (const n of lastDraw.front) {
+    if (n <= 31) lastDrawPopularity++;
+    if ([6,8,9,16,18,28].includes(n)) lastDrawPopularity++;
+  }
+  const wasAppeasement = lastDrawPopularity >= 4; // 4+ popular numbers → likely appeasement
+
+  // Mode switching probability
+  const savingWeight = wasAppeasement ? 0.92 : 0.80; // After appeasement, more aggressive saving
+  const appeasementWeight = 1 - savingWeight;
+
+  // ── Score all numbers ──
+  const frontScored = [];
+  for (let n = 1; n <= c.frontMax; n++) {
+    const unpopular = directorUnpopularScore(n, history, freq, lastSeen);
+    const natural = directorAppeasementScore(n);
+
+    // Blend: 80-92% saving mode, 8-20% appeasement mode
+    const blended = unpopular * savingWeight + natural * appeasementWeight;
+
+    // Add Gaussian noise for unpredictability (director can't be fully predicted)
+    const noise = (Math.random() - 0.5) * 20;
+    frontScored.push({
+      num: n,
+      unpopular,
+      natural,
+      score: blended + noise,
+      label: unpopular > natural ? '省钱' : '放水'
+    });
+  }
+
+  frontScored.sort((a, b) => b.score - a.score);
+
+  // Pick: top-scoring numbers with weighted randomness
+  const front = weightedPick(frontScored, c.frontCount, 0.4);
+
+  // Back balls: simpler, just pick cold unpopular
+  const backFreq = {}; const backLast = {};
+  for (let n = 1; n <= c.backMax; n++) { backFreq[n] = 0; backLast[n] = -1; }
+  for (let i = 0; i < history.length; i++) {
+    if (history[i].back) for (const n of history[i].back) { backFreq[n]++; backLast[n] = history.length - 1 - i; }
+  }
+  const backScored = [];
+  for (let n = 1; n <= c.backMax; n++) {
+    const unpopular = directorUnpopularScore(n, history, backFreq, backLast);
+    backScored.push({ num: n, score: unpopular + (Math.random() - 0.5) * 15 });
+  }
+  backScored.sort((a, b) => b.score - a.score);
+  const back = weightedPick(backScored, c.backCount, 0.3);
+
+  // ── Apply credibility filter (不能太假) ──
+  // Director constraint: combination must look at least somewhat natural
+  const hasSmall = front.some(n => n <= 15); // At least 1 small number
+  const hasLarge = front.some(n => n >= 25); // At least 1 large number
+  const oddCount = front.filter(n => n % 2 === 1).length;
+  const extremeCount = front.filter(n => directorUnpopularScore(n, history, freq, lastSeen) > 50).length;
+
+  let credibilityOK = hasSmall && hasLarge && oddCount >= 1 && oddCount <= front.length - 1;
+  let modeLabel = wasAppeasement ? '主任上期放水，本期大概率省钱' : '主任正常模式';
+
+  const set = {
+    front, back,
+    strategy: 'director',
+    frontScored: frontScored.slice(0, 10),
+    mode: savingWeight > 0.85 ? '省钱模式' : '正常模式',
+    modeLabel,
+    savingWeight,
+    wasAppeasement,
+    credibilityOK,
+    unpopularAvg: front.reduce((s, n) => s + (frontScored.find(f => f.num === n)?.unpopular || 0), 0) / front.length
+  };
+
+  currentSets = [set];
+  renderResult(set);
+  renderDirectorAnalysis(set);
+  predCounts[currentType] = (predCounts[currentType] || 0) + 1;
+  updateStats(); showBtns();
+}
+
+function renderDirectorAnalysis(set) {
+  const el = document.getElementById('analysisInline');
+  el.style.display = 'block';
+  const c = cfg();
+  const front = set.front;
+  const back = set.back;
+
+  const frontInfo = front.map(n => {
+    const s = set.frontScored.find(f => f.num === n);
+    return { n, unpopular: s?.unpopular || 0, natural: s?.natural || 0, label: s?.label || '?' };
+  });
+
+  let html = '<div style="background:#0a0015;border:1px solid #333;border-radius:8px;padding:14px 16px">' +
+    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">' +
+    '<span class="strategy-badge" style="background:linear-gradient(135deg,rgba(255,100,0,.4),rgba(200,50,0,.4));color:#ffcc88;border:1px solid rgba(255,150,50,.5)">🎭 主任心理学</span>' +
+    '<span class="analysis-tag tag-gold">' + set.modeLabel + '</span>' +
+    '<span class="analysis-tag" style="background:rgba(255,255,255,.06);color:#aaa;border:1px solid rgba(255,255,255,.15)">博弈论: 我们先手,主任后手</span>' +
+    '</div>';
+
+  // Mode indicator
+  const savingPct = Math.round(set.savingWeight * 100);
+  html += '<div style="margin-bottom:10px;background:rgba(255,255,255,.03);border-radius:6px;padding:8px 12px">';
+  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-bottom:3px">' +
+    '<span>省钱模式(选冷门)</span><span>放水模式(选正常)</span></div>';
+  html += '<div style="height:8px;background:#222;border-radius:4px;overflow:hidden">' +
+    '<div style="height:100%;width:' + savingPct + '%;background:linear-gradient(90deg,#ff6600,#ff3300);border-radius:4px;transition:width .5s"></div></div>';
+  html += '<div style="text-align:center;font-size:11px;color:#ff8844;margin-top:3px">主任当前' + set.mode + ' (' + savingPct + '%省钱 | ' + (100 - savingPct) + '%放水)</div>';
+  html += '</div>';
+
+  // Number analysis
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin-bottom:8px">';
+  for (const info of frontInfo) {
+    const color = info.label === '省钱' ? '#ff8844' : '#44cc88';
+    const barH = Math.max(4, (info.unpopular + 50) / 2);
+    html += '<div style="text-align:center;background:rgba(255,255,255,.03);border-radius:6px;padding:6px 4px">' +
+      '<div style="font-size:18px;font-weight:700;color:' + color + '">' + String(info.n).padStart(2, '0') + '</div>' +
+      '<div style="font-size:9px;color:#888">' + info.label + '</div>' +
+      '<div style="font-size:8px;color:#666">不被买 ' + Math.round(info.unpopular) + '%</div></div>';
+  }
+  html += '</div>';
+
+  // Credibility check
+  html += '<div style="font-size:10px;line-height:1.8;color:#888;text-align:center">';
+  html += '主任可信度检查: ' + (set.credibilityOK ? '<span style="color:#4c8">✅ 组合不穿帮</span>' : '<span style="color:#f84">⚠️ 太假需调整</span>') + ' | ';
+  html += '反买得分: <span style="color:#ff8844">' + Math.round(set.unpopularAvg) + '分</span>（越高=越少人买=主任越可能开）';
+  html += '</div>';
+
+  html += '<div class="insight-text" style="margin-top:8px">' +
+    '🎭 博弈逻辑：彩民先手选号 → 主任看到所有投注 → 选择<em>最少人买的号码</em>开奖 → 最大化奖金留存<br>' +
+    '但主任的困境：不能每次都开极端冷门（会穿帮），必须<em>偶尔放水</em>让人中奖维持可信度<br>' +
+    '我们模拟这个博弈过程：' + (set.wasAppeasement ? '上期偏正常→本期<em>省钱模式概率92%</em>' : '主任处于<em>随机切换</em>状态') + '</div>';
+
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ═══════════════════════════════════════════
