@@ -6,15 +6,15 @@ import { toPng } from "html-to-image";
 interface MingShuScrollProps {
   customerName: string;
   birthDate: string;
-  baziDisplay: {
-    year: string; month: string; day: string; hour: string;
-  };
+  baziDisplay: { year: string; month: string; day: string; hour: string };
   aiMingShu: string;
   dayMaster: { gan: string; wuxing: string };
+  lang?: "bilingual" | "zh" | "en";
+  version?: "concise" | "full";
   totemImageUrl?: string;
 }
 
-export default function MingShuScroll({ customerName, birthDate, baziDisplay, aiMingShu, dayMaster, totemImageUrl }: MingShuScrollProps) {
+export default function MingShuScroll({ customerName, birthDate, baziDisplay, aiMingShu, dayMaster, lang = "bilingual", version = "full" }: MingShuScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -38,10 +38,8 @@ export default function MingShuScroll({ customerName, birthDate, baziDisplay, ai
     }
   };
 
-  // Parse Gemini text into sections
-  const sections = aiMingShu
-    .split(/(?=一、|二、|三、|四、|五、|六、|七、)/)
-    .filter((s) => s.trim());
+  // Parse sections with bilingual headers 「一、xxx | I. xxx」
+  const sections = parseScrollSections(aiMingShu);
 
   return (
     <div id="mingshu-scroll-section" className="nop" style={{ padding: "48px 0" }}>
@@ -150,51 +148,26 @@ export default function MingShuScroll({ customerName, birthDate, baziDisplay, ai
           </div>
 
           {/* ═══ MAIN TEXT BODY ═══ */}
-          <div
-            style={{
-              fontSize: 15,
-              lineHeight: 2.3,
-              color: "#2b2318",
-              textAlign: "justify",
-            }}
-          >
+          <div style={{ fontSize: 15, lineHeight: 2.3, color: "#2b2318", textAlign: "justify" }}>
             {sections.length > 0
               ? sections.map((section, i) => {
-                  const lines = section.trim().split("\n");
-                  const title = lines[0];
-                  const body = lines.slice(1).join("\n").trim();
+                  const showCn = lang === "bilingual" || lang === "zh";
+                  const showEn = lang === "bilingual" || lang === "en";
                   return (
                     <div key={i} style={{ marginBottom: i < sections.length - 1 ? 32 : 0 }}>
-                      <h3
-                        style={{
-                          fontSize: 17,
-                          fontWeight: 600,
-                          color: "#3c2e1e",
-                          margin: "0 0 12px",
-                          letterSpacing: "0.06em",
-                          borderLeft: "3px solid #b8956a",
-                          paddingLeft: 12,
-                        }}
-                      >
-                        {title}
+                      <h3 style={{ fontSize: 17, fontWeight: 600, color: "#3c2e1e", margin: "0 0 12px", letterSpacing: "0.06em", borderLeft: "3px solid #b8956a", paddingLeft: 12 }}>
+                        {showCn ? section.titleCn : ""}{showCn && showEn ? " · " : ""}{showEn ? section.titleEn : ""}
                       </h3>
-                      <p
-                        style={{
-                          margin: 0,
-                          textIndent: "2em",
-                          whiteSpace: "pre-wrap",
-                        }}
-                      >
-                        {body}
-                      </p>
+                      {showCn && section.bodyCn && (
+                        <p style={{ margin: "0 0 10px", textIndent: "2em", whiteSpace: "pre-wrap" }}>{section.bodyCn}</p>
+                      )}
+                      {showEn && section.bodyEn && (
+                        <p style={{ margin: 0, textIndent: showCn ? 0 : "2em", whiteSpace: "pre-wrap", color: showCn ? "#5c4e3d" : "#2b2318", fontSize: showCn ? 13 : 15, fontStyle: showCn ? "italic" : "normal" }}>{section.bodyEn}</p>
+                      )}
                     </div>
                   );
                 })
-              : (
-                  <p style={{ margin: 0, textIndent: "2em", whiteSpace: "pre-wrap" }}>
-                    {aiMingShu}
-                  </p>
-                )}
+              : (<p style={{ margin: 0, textIndent: "2em", whiteSpace: "pre-wrap" }}>{aiMingShu}</p>)}
           </div>
 
           {/* ═══ RED SEAL ═══ */}
@@ -316,4 +289,61 @@ export default function MingShuScroll({ customerName, birthDate, baziDisplay, ai
       </div>
     </div>
   );
+}
+
+interface ScrollSection { titleCn: string; titleEn: string; bodyCn: string; bodyEn: string; }
+
+function parseScrollSections(text: string): ScrollSection[] {
+  if (!text || text.startsWith("[Gemini")) return [];
+  const sections: ScrollSection[] = [];
+  const re = /[「【]([一二三四五六七八]、[^|」】]+)\s*\|\s*([^」】]+)[」】]/g;
+  const matches: Array<{ index: number; titleCn: string; titleEn: string }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    matches.push({ index: m.index, titleCn: m[1].trim(), titleEn: m[2].trim() });
+  }
+  // Fall back to old format: 「一、xxx」 or 一、xxx
+  if (matches.length === 0) {
+    const oldRe = /(?:一、|二、|三、|四、|五、|六、|七、|八、)[^\n]+/g;
+    const oldMatches: Array<{ index: number; title: string }> = [];
+    while ((m = oldRe.exec(text)) !== null) {
+      oldMatches.push({ index: m.index, title: m[0].trim() });
+    }
+    if (oldMatches.length > 0) {
+      for (let i = 0; i < oldMatches.length; i++) {
+        const start = oldMatches[i].index;
+        const end = i < oldMatches.length - 1 ? oldMatches[i + 1].index : text.length;
+        const body = text.substring(start + oldMatches[i].title.length, end).trim();
+        sections.push({ titleCn: oldMatches[i].title, titleEn: oldMatches[i].title, bodyCn: body, bodyEn: "" });
+      }
+      return sections;
+    }
+    return [];
+  }
+
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index;
+    const end = i < matches.length - 1 ? matches[i + 1].index : text.length;
+    const content = text.substring(start, end);
+    const headerEnd = content.indexOf("」");
+    const body = headerEnd > 0 ? content.substring(headerEnd + 1).trim() : content;
+    const cnLines: string[] = [];
+    const enLines: string[] = [];
+    let inEnglish = false;
+    for (const line of body.split("\n")) {
+      const t = line.trim();
+      if (!t) continue;
+      const asciiRatio = [...t].filter((c) => c.charCodeAt(0) < 128).length / t.length;
+      if (!inEnglish && asciiRatio > 0.7 && /^[A-Z]/.test(t)) inEnglish = true;
+      if (inEnglish) enLines.push(t);
+      else cnLines.push(t);
+    }
+    sections.push({
+      titleCn: matches[i].titleCn,
+      titleEn: matches[i].titleEn,
+      bodyCn: cnLines.join("\n") || (enLines.length ? enLines.join("\n") : body),
+      bodyEn: enLines.join("\n") || cnLines.join("\n"),
+    });
+  }
+  return sections;
 }

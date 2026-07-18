@@ -52,7 +52,11 @@ export async function POST(request: Request) {
     // Attach 紫微 data
     const fullContent = { ...report, ziwei };
 
-    // Call Gemini to write authentic 命书 prose
+    // Call Gemini/DeepSeek to write bilingual 命书
+    const yongShen = fullContent.disuitianshu?.yongshen || "";
+    const yongShenEn = fullContent.disuitianshu?.yongshenEn || "";
+    const yongShenIdx = fullContent.dominantElement;
+    const dirMap: Record<number,string> = {0:"东方",1:"南方",2:"中部",3:"西方",4:"北方"};
     const mingShuInput = {
       customerName: name,
       birthDate: `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`,
@@ -65,17 +69,24 @@ export async function POST(request: Request) {
       geJu: fullContent.geJu?.analysis || "",
       wuxing: fullContent.elementAnalysis?.profile || "",
       shiShen: fullContent.shiShen?.explanation || "",
+      birthplace: birthplace || "",
+      yongShen: yongShen,
+      yongShenEn: yongShenEn,
+      yongShenDirection: dirMap[yongShenIdx] || "",
     };
-    let aiMingShu = "";
+    let conciseMingShu = "";
+    let fullMingShu = "";
+    let aiMingShu = ""; // legacy fallback
     let aiBlueprint: any = null;
     let geminiError = "";
     try {
       const result = await generateMingShu(mingShuInput);
-      if (result?.text) {
-        aiMingShu = result.text;
+      if (result?.concise || result?.full) {
+        conciseMingShu = result.concise || result.full || "";
+        fullMingShu = result.full || result.concise || "";
+        aiMingShu = fullMingShu; // legacy compatibility
         aiBlueprint = result.blueprint || null;
-      }
-      if (result?.error) {
+      } else if (result?.error) {
         geminiError = result.error;
         aiMingShu = `[Gemini: ${result.error}]`;
       }
@@ -84,7 +95,7 @@ export async function POST(request: Request) {
       aiMingShu = `[Gemini异常: ${geminiError}]`;
     }
     const totemImageUrl = getTotemImageUrl(mingShuInput, fullContent.totemDescription);
-    const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint, totemImageUrl, geminiError };
+    const contentWithAI = { ...fullContent, conciseMingShu, fullMingShu, aiMingShu, aiBlueprint, totemImageUrl, geminiError };
 
     // Save report to Sanity for online access
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;

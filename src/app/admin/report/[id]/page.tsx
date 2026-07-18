@@ -34,14 +34,14 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
 
   const save = async () => {
     setSaving(true);
-    await fetch("/api/admin/approve-send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reportId: id, email: null, editedContent: JSON.stringify(report.content) }) });
+    await fetch("/api/admin/approve-send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reportId: id, email: null, editedContent: JSON.stringify(report.content), conciseMingShu: conciseEdited, fullMingShu: fullEdited }) });
     setSaving(false); alert("已保存");
   };
 
   const approveAndSend = async () => {
     if (!confirm("确认审核通过并发送邮件给客户？")) return;
     setSending(true);
-    const res = await fetch("/api/admin/approve-send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reportId: id, email: report?.customerEmail, name: report?.customerName, editedContent: JSON.stringify(report.content) }) });
+    const res = await fetch("/api/admin/approve-send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reportId: id, email: report?.customerEmail, name: report?.customerName, editedContent: JSON.stringify(report.content), conciseMingShu: conciseEdited, fullMingShu: fullEdited }) });
     setSending(false);
     const data = await res.json();
     alert(data.success ? (data.emailSent ? "已发送！" : "已审核但邮件发送失败") : "操作失败");
@@ -60,9 +60,12 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
   const gj = c?.geJu || {};
   const dy = c?.dayun || [];
   const ys = c?.disuitianshu || {};
-  const aiMingShu = c?.aiMingShu || "";
-  const hasAi = aiMingShu && !aiMingShu.startsWith("[Gemini");
-  const geminiErr = aiMingShu.startsWith("[Gemini") ? aiMingShu : c?.geminiError || "";
+  const rawConcise = c?.conciseMingShu || c?.aiMingShu || "";
+  const rawFull = c?.fullMingShu || c?.aiMingShu || "";
+  const hasAi = !!(rawFull && !rawFull.startsWith("[Gemini"));
+  const geminiErr = rawFull.startsWith("[Gemini") ? rawFull : c?.geminiError || "";
+  const [conciseEdited, setConciseEdited] = useState(rawConcise);
+  const [fullEdited, setFullEdited] = useState(rawFull);
 
   return (
     <div style={{ fontFamily: "Georgia,'Noto Serif SC',serif", background: "#f5efe6", minHeight: "100vh", color: "#3c342e" }}>
@@ -102,22 +105,33 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
           {showEdit && <EditFields prefix="baziDisplay" obj={c?.baziDisplay} update={updateField} fields={["year","month","day","hour","yearEn","monthEn","dayEn","hourEn"]} />}
         </Section>
 
-        {/* ═══ AI 命书卷轴 (Gemini/DeepSeek) ═══ */}
-        {hasAi ? (
-          <MingShuScrollPreview aiMingShu={aiMingShu} customerName={report.customerName} baziDisplay={c?.baziDisplay} dayMaster={dm} />
-        ) : geminiErr ? (
-          <Section title="AI命书状态">
-            <div style={{padding:20,textAlign:"center",background:"#fff8f0",border:"1px solid #e8d5b8"}}>
-              <p style={{fontSize:15,color:"#c08070",margin:"0 0 8px"}}>AI命书生成失败</p>
-              <p style={{fontSize:12,color:"#8c8076",margin:0,wordBreak:"break-all"}}>{geminiErr.slice(0,300)}</p>
+        {/* ═══ 命书编辑区 ═══ */}
+        <Section title="简约版命书 · Concise Version（客户快速阅览）">
+          <textarea
+            value={conciseEdited}
+            onChange={e => { setConciseEdited(e.target.value); updateField("conciseMingShu", e.target.value); }}
+            rows={10}
+            style={{ width: "100%", padding: "12px 16px", border: "1px solid #ddd", fontSize: 13, fontFamily: "inherit", lineHeight: 2, resize: "vertical", boxSizing: "border-box", borderRadius: 3 }}
+          />
+        </Section>
+
+        <Section title="完整版命书 · Full Version（邮件发送给客户）">
+          <textarea
+            value={fullEdited}
+            onChange={e => { setFullEdited(e.target.value); updateField("fullMingShu", e.target.value); updateField("aiMingShu", e.target.value); }}
+            rows={24}
+            style={{ width: "100%", padding: "12px 16px", border: "1px solid #ddd", fontSize: 13, fontFamily: "inherit", lineHeight: 2, resize: "vertical", boxSizing: "border-box", borderRadius: 3, background: hasAi ? "#fff" : "#fff8f0" }}
+          />
+          {!hasAi && geminiErr && (
+            <div style={{ marginTop: 8, padding: "8px 12px", background: "#fff8f0", border: "1px solid #e8d5b8", fontSize: 11, color: "#c08070" }}>
+              AI生成失败: {geminiErr.slice(0, 200)}
             </div>
-          </Section>
-        ) : (
-          <Section title="AI命书状态">
-            <div style={{padding:20,textAlign:"center",background:"#f8f8f8",border:"1px solid #e0e0e0"}}>
-              <p style={{fontSize:15,color:"#999",margin:0}}>AI命书尚未生成（旧版报告）</p>
-            </div>
-          </Section>
+          )}
+        </Section>
+
+        {/* ═══ 卷轴预览 ═══ */}
+        {hasAi && fullEdited && (
+          <MingShuScrollPreview aiMingShu={fullEdited} customerName={report.customerName} baziDisplay={c?.baziDisplay} dayMaster={dm} />
         )}
 
         {/* 格局 */}
@@ -135,12 +149,11 @@ export default function AdminReportEditor({ params }: { params: Promise<{ id: st
         {/* 大运 */}
         {dy.length > 0 && <Section title="大运流年"><div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>{dy.map((d2:any,i:number)=><div key={i} style={{background:"#fff",border:"1px solid #e5dcd1",padding:"14px 16px"}}><p style={{fontSize:13,fontWeight:600,margin:"0 0 2px"}}>{d2.age} {d2.ganzhi} · 纳音{d2.nayin}</p><p style={{fontSize:12,lineHeight:1.8,color:"#5c4a3e",margin:0}}>{d2.analysis}</p></div>)}</div></Section>}
 
-        {/* 可编辑字段(折叠) */}
+        {/* 额外编辑 */}
         {showEdit && (
           <div style={{ marginTop: 48, padding: 24, background: "#fff", border: "1px solid #e5dcd1" }}>
-            <h2 style={{ fontSize: 18, margin: "0 0 16px" }}>编辑字段</h2>
+            <h2 style={{ fontSize: 18, margin: "0 0 16px" }}>其他字段</h2>
             <EditSection title="日主" obj={dm} update={updateField} fields={["gan","wuxing"]} prefix="dayMaster" />
-            <EditSection title="AI命书(手动编辑)" obj={{aiMingShu}} update={(p: string, v: string) => updateField("aiMingShu", v)} fields={["aiMingShu"]} prefix="" textarea />
             <EditSection title="用神" obj={ys} update={updateField} fields={["yongshen","analysis"]} prefix="disuitianshu" />
           </div>
         )}

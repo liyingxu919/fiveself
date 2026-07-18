@@ -14,14 +14,25 @@ const WX=["木","火","土","金","水"],WXE=["Wood","Fire","Earth","Metal","Wat
 
 function useData(id:string){const[d,setD]=useState<any>(null);const[l,setL]=useState(true);useEffect(()=>{fetch(`/api/admin/report/${id}`,{signal:AbortSignal.timeout(12000)}).then(r=>r.json()).then(j=>{if(j?.report?.content){setD(typeof j.report.content==="string"?JSON.parse(j.report.content):j.report.content)}}).catch(()=>{}).finally(()=>setL(false))},[id]);return{d,l}};
 
-export default function Report({params}:{params:Promise<{id:string}>}){const{id}=use(params);const{d,l}=useData(id);if(l)return<Wait>Loading...</Wait>;if(!d)return<Wait><p style={{fontSize:18}}>Report not found</p><a href="/order" style={{color:T.gold}}>Generate new</a></Wait>;
+export default function Report({params}:{params:Promise<{id:string}>}){const{id}=use(params);const{d,l}=useData(id);
+  const [lang,setLang]=useState<"bilingual"|"zh"|"en">("bilingual");
+  const [version,setVersion]=useState<"concise"|"full">("full");
+  if(l)return<Wait>Loading...</Wait>;if(!d)return<Wait><p style={{fontSize:18}}>Report not found</p><a href="/order" style={{color:T.gold}}>Generate new</a></Wait>;
   const dm=d.dayMaster,ed=d.wuxingDistribution,an=d.elementAnalysis,cp=d.colorPalette||[],wxData=WX.map(w=>ed.find((e:any)=>e.name===w)||{name:w,nameEn:WXE[WX.indexOf(w)],count:0,percentage:0});
-  const hasAiMingShu = d.aiMingShu && !d.aiMingShu.startsWith("[Gemini");
-  const geminiMsg = d.aiMingShu?.startsWith("[Gemini") ? d.aiMingShu : d.geminiError || "";
-  return<div style={{fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",background:T.bg,color:T.ink,minHeight:"100vh"}}><style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap');@media print{@page{size:A4;margin:12mm}body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.nop{display:none!important}}`}</style><PrintBtn/><Cover d={d} dm={dm} ed={ed}/><div style={{maxWidth:940,margin:"0 auto",padding:24}}><S1 d={d} dm={dm}/>{hasAiMingShu?<MingShuScroll customerName={d.customerName} birthDate={d.birthDate} baziDisplay={d.baziDisplay} aiMingShu={d.aiMingShu} dayMaster={dm}/>:geminiMsg?<GeminiFallback msg={geminiMsg} d={d} dm={dm}/>:null}<S2 wxData={wxData} dm={dm} ed={ed}/><S3 d={d} wxData={wxData} dm={dm} an={an}/><S4 d={d} dm={dm} cp={cp}/><S5 d={d} dm={dm}/></div><Footer d={d}/></div>}
+  const conciseMingShu = d.conciseMingShu || "";
+  const fullMingShu = d.fullMingShu || d.aiMingShu || "";
+  const hasAiMingShu = !!(fullMingShu && !fullMingShu.startsWith("[Gemini"));
+  const geminiMsg = fullMingShu.startsWith("[Gemini") ? fullMingShu : d.geminiError || "";
+  const displayMingShu = version === "concise" && conciseMingShu ? conciseMingShu : fullMingShu;
+
+  return<div style={{fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",background:T.bg,color:T.ink,minHeight:"100vh"}}><style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap');@media print{@page{size:A4;margin:12mm}body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.nop{display:none!important}}`}</style><PrintBtn/><Cover d={d} dm={dm} ed={ed}/><div style={{maxWidth:940,margin:"0 auto",padding:24}}><S1 d={d} dm={dm}/><div className="nop" style={{display:"flex",justifyContent:"center",gap:8,padding:"16px 0"}}><VersionToggle version={version} setVersion={setVersion}/><LangToggle lang={lang} setLang={setLang}/></div>{hasAiMingShu?<MingShuScroll customerName={d.customerName} birthDate={d.birthDate} baziDisplay={d.baziDisplay} aiMingShu={displayMingShu} dayMaster={dm} lang={lang} version={version}/>:geminiMsg?<GeminiFallback msg={geminiMsg} d={d} dm={dm}/>:null}<S2 wxData={wxData} dm={dm} ed={ed}/><S3 d={d} wxData={wxData} dm={dm} an={an}/><S4 d={d} dm={dm} cp={cp}/><S5 d={d} dm={dm}/></div><Footer d={d}/></div>}
 
 function Wait({children}:any){return<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:T.bg,fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",color:T.ink,textAlign:"center",padding:48}}>{children}</div>}
 function PrintBtn(){return<div className="nop" style={{position:"fixed",top:20,right:20,zIndex:999}}><button onClick={()=>window.print()} style={{background:T.ink,color:"#fff",border:"none",padding:"14px 32px",fontSize:11,letterSpacing:"0.15em",textTransform:"uppercase",cursor:"pointer",borderRadius:2,fontFamily:"inherit"}}>Download PDF</button></div>}
+
+function VersionToggle({version,setVersion}:any){const btn=(v:string,label:string)=>(<button onClick={()=>setVersion(v)} style={{padding:"6px 16px",border:version===v?`2px solid ${T.gold}`:"1px solid #ddd",background:version===v?T.gold:"#fff",color:version===v?"#fff":T.mute,fontSize:11,cursor:"pointer",borderRadius:2,fontFamily:"inherit"}}>{label}</button>);return<>{btn("concise","简约版 Quick")}{btn("full","完整版 Full")}</>}
+
+function LangToggle({lang,setLang}:any){const btn=(v:string,label:string)=>(<button onClick={()=>setLang(v)} style={{padding:"6px 14px",border:lang===v?`2px solid ${T.ink}`:"1px solid #ddd",background:lang===v?T.ink:"#fff",color:lang===v?"#fff":T.mute,fontSize:11,cursor:"pointer",borderRadius:2,fontFamily:"inherit"}}>{label}</button>);return<>{btn("bilingual","双语")}{btn("zh","中文")}{btn("en","EN")}</>}
 
 function GeminiFallback({msg,d,dm}:any){
   const dmC=T.w[WX.indexOf(dm.wuxing)]||T.gold;
