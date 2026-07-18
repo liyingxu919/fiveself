@@ -36,11 +36,16 @@ function buildPrompt(input: MingShuInput): string {
 五行：${input.wuxing}
 格局：${input.geJu}
 日主：${input.strength}
-十神：${input.shiShen}
+十神（这是根据八字精确计算的结果，必须严格使用，不可自行更改）：${input.shiShen}
 神煞：${input.shenSha}
 紫微：${input.ziwei}
 大运：${input.dayun}
 用神：${input.yongShen||"待定"}${bpSection}
+
+【命理数据约束——必须严格遵守】
+1. 十神、格局、用神均为八字排盘的计算结果，不可自行修改或编造
+2. 分析时必须使用上述提供的十神名称，例如年柱是${input.shiShen?.split("，")[0] || input.shiShen}，就必须在文中正确引用
+3. 格局为${input.geJu?.split("。")[0] || input.geJu}，用神为${input.yongShen || "需根据日主强弱判断"}，全文保持一致
 
 【格式要求——严格遵守】
 

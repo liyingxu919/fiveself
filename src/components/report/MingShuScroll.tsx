@@ -6,15 +6,21 @@ import { toPng } from "html-to-image";
 interface MingShuScrollProps {
   customerName: string;
   birthDate: string;
-  baziDisplay: { year: string; month: string; day: string; hour: string };
+  baziDisplay: { year: string; month: string; day: string; hour: string; yearEn?: string; monthEn?: string; dayEn?: string; hourEn?: string };
   aiMingShu: string;
   dayMaster: { gan: string; wuxing: string };
   lang?: "bilingual" | "zh" | "en";
   version?: "concise" | "full";
   totemImageUrl?: string;
+  wuxingData?: Array<{ name: string; nameEn: string; count: number; percentage: number; color: string }>;
+  dayunData?: Array<{ age: string; ganzhi: string; nayin: string; analysis: string }>;
+  yongShen?: string;
+  shenSha?: string[];
 }
 
-export default function MingShuScroll({ customerName, birthDate, baziDisplay, aiMingShu, dayMaster, lang = "bilingual", version = "full" }: MingShuScrollProps) {
+const WX_COLORS = ["#7a9a7b", "#c0806e", "#b8956a", "#8c827a", "#6a8aa0"];
+
+export default function MingShuScroll({ customerName, birthDate, baziDisplay, aiMingShu, dayMaster, lang = "bilingual", version = "full", wuxingData, dayunData, yongShen, shenSha }: MingShuScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -146,6 +152,71 @@ export default function MingShuScroll({ customerName, birthDate, baziDisplay, ai
               </p>
             </div>
           </div>
+
+          {/* ═══ 八字四柱表 ═══ */}
+          <div style={{ marginBottom: 32 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#e8ddd0" }}>
+                  {[baziDisplay].map((bz: any) => (
+                    <>
+                      <th style={{ padding: "8px 6px", border: "1px solid #d4c5a9", fontWeight: 600 }}>{bz.year||""}</th>
+                      <th style={{ padding: "8px 6px", border: "1px solid #d4c5a9", fontWeight: 600 }}>{bz.month||""}</th>
+                      <th style={{ padding: "8px 6px", border: "1px solid #d4c5a9", fontWeight: 600 }}>{bz.day||""}</th>
+                      <th style={{ padding: "8px 6px", border: "1px solid #d4c5a9", fontWeight: 600 }}>{bz.hour||""}</th>
+                    </>
+                  ))}
+                </tr>
+                <tr>
+                  <td style={{ padding: "6px", border: "1px solid #d4c5a9", textAlign: "center", fontSize: 11, color: "#8c7b65" }}>年柱 Year</td>
+                  <td style={{ padding: "6px", border: "1px solid #d4c5a9", textAlign: "center", fontSize: 11, color: "#8c7b65" }}>月柱 Month</td>
+                  <td style={{ padding: "6px", border: "1px solid #d4c5a9", textAlign: "center", fontSize: 11, color: "#8c7b65" }}>日柱 Day</td>
+                  <td style={{ padding: "6px", border: "1px solid #d4c5a9", textAlign: "center", fontSize: 11, color: "#8c7b65" }}>时柱 Hour</td>
+                </tr>
+              </thead>
+            </table>
+            <p style={{ textAlign: "center", fontSize: 11, color: "#b8956a", margin: "8px 0 0" }}>
+              日主 {dayMaster.gan}（{dayMaster.wuxing}）{yongShen ? ` · 用神 ${yongShen}` : ""}{shenSha?.length ? ` · ${shenSha.slice(0,3).join(" ")}` : ""}
+            </p>
+          </div>
+
+          {/* ═══ 五行能量条 ═══ */}
+          {wuxingData && wuxingData.length > 0 && (
+            <div style={{ marginBottom: 32, padding: "16px 12px", border: "1px solid #e0d5c0", background: "rgba(255,255,255,0.4)" }}>
+              <h4 style={{ fontSize: 12, fontWeight: 600, margin: "0 0 12px", color: "#5c4e3d", textAlign: "center" }}>五行能量分布 · Five Elements Energy</h4>
+              {wuxingData.map((w, i) => (
+                <div key={i} style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 32, fontSize: 11, color: "#8c7b65", textAlign: "right", flexShrink: 0 }}>{w.name}</span>
+                  <div style={{ flex: 1, height: 14, background: "#e8ddd0", borderRadius: 7, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${Math.max(4, w.percentage)}%`, background: WX_COLORS[i] || "#b8956a", borderRadius: 7, transition: "width 0.5s" }} />
+                  </div>
+                  <span style={{ width: 36, fontSize: 10, color: "#8c7b65", flexShrink: 0 }}>{w.count} ({w.percentage}%)</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ═══ 大运趋势 ═══ */}
+          {dayunData && dayunData.length > 0 && (
+            <div style={{ marginBottom: 32, padding: "16px 12px", border: "1px solid #e0d5c0", background: "rgba(255,255,255,0.4)" }}>
+              <h4 style={{ fontSize: 12, fontWeight: 600, margin: "0 0 12px", color: "#5c4e3d", textAlign: "center" }}>大运流转 · Life Cycles</h4>
+              <div style={{ display: "flex", gap: 4, overflow: "hidden" }}>
+                {dayunData.slice(0, 8).map((d, i) => {
+                  const colors = ["#7a9a7b","#c0806e","#b8956a","#8c827a","#6a8aa0","#7a9a7b","#c0806e","#b8956a"];
+                  const h = 24 + (d.analysis?.length || 0) % 5 * 6;
+                  return (
+                    <div key={i} style={{ flex: 1, textAlign: "center" }}>
+                      <div style={{ height: h, background: colors[i], borderRadius: "3px 3px 0 0", marginBottom: 2, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "2px 1px" }}>
+                        <span style={{ fontSize: 8, color: "#fff", fontWeight: 600 }}>{d.ganzhi}</span>
+                      </div>
+                      <div style={{ fontSize: 8, color: "#8c7b65" }}>{d.age}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{ textAlign: "center", fontSize: 9, color: "#b8956a", margin: "8px 0 0" }}>每步大运十年 · 高低起伏皆有时</p>
+            </div>
+          )}
 
           {/* ═══ MAIN TEXT BODY ═══ */}
           <div style={{ fontSize: 15, lineHeight: 2.3, color: "#2b2318", textAlign: "justify" }}>
