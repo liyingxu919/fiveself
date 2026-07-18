@@ -17,10 +17,33 @@ function useData(id:string){const[d,setD]=useState<any>(null);const[l,setL]=useS
 export default function Report({params}:{params:Promise<{id:string}>}){const{id}=use(params);const{d,l}=useData(id);if(l)return<Wait>Loading...</Wait>;if(!d)return<Wait><p style={{fontSize:18}}>Report not found</p><a href="/order" style={{color:T.gold}}>Generate new</a></Wait>;
   const dm=d.dayMaster,ed=d.wuxingDistribution,an=d.elementAnalysis,cp=d.colorPalette||[],wxData=WX.map(w=>ed.find((e:any)=>e.name===w)||{name:w,nameEn:WXE[WX.indexOf(w)],count:0,percentage:0});
   const hasAiMingShu = d.aiMingShu && !d.aiMingShu.startsWith("[Gemini");
-  return<div style={{fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",background:T.bg,color:T.ink,minHeight:"100vh"}}><style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap');@media print{@page{size:A4;margin:12mm}body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.nop{display:none!important}}`}</style><PrintBtn/><Cover d={d} dm={dm} ed={ed}/><div style={{maxWidth:940,margin:"0 auto",padding:24}}><S1 d={d} dm={dm}/>{hasAiMingShu&&<MingShuScroll customerName={d.customerName} birthDate={d.birthDate} baziDisplay={d.baziDisplay} aiMingShu={d.aiMingShu} dayMaster={dm}/>}<S2 wxData={wxData} dm={dm} ed={ed}/><S3 d={d} wxData={wxData} dm={dm} an={an}/><S4 d={d} dm={dm} cp={cp}/><S5 d={d} dm={dm}/></div><Footer d={d}/></div>}
+  const geminiMsg = d.aiMingShu?.startsWith("[Gemini") ? d.aiMingShu : d.geminiError || "";
+  return<div style={{fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",background:T.bg,color:T.ink,minHeight:"100vh"}}><style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap');@media print{@page{size:A4;margin:12mm}body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.nop{display:none!important}}`}</style><PrintBtn/><Cover d={d} dm={dm} ed={ed}/><div style={{maxWidth:940,margin:"0 auto",padding:24}}><S1 d={d} dm={dm}/>{hasAiMingShu?<MingShuScroll customerName={d.customerName} birthDate={d.birthDate} baziDisplay={d.baziDisplay} aiMingShu={d.aiMingShu} dayMaster={dm}/>:geminiMsg?<GeminiFallback msg={geminiMsg} d={d} dm={dm}/>:null}<S2 wxData={wxData} dm={dm} ed={ed}/><S3 d={d} wxData={wxData} dm={dm} an={an}/><S4 d={d} dm={dm} cp={cp}/><S5 d={d} dm={dm}/></div><Footer d={d}/></div>}
 
 function Wait({children}:any){return<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:T.bg,fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",color:T.ink,textAlign:"center",padding:48}}>{children}</div>}
 function PrintBtn(){return<div className="nop" style={{position:"fixed",top:20,right:20,zIndex:999}}><button onClick={()=>window.print()} style={{background:T.ink,color:"#fff",border:"none",padding:"14px 32px",fontSize:11,letterSpacing:"0.15em",textTransform:"uppercase",cursor:"pointer",borderRadius:2,fontFamily:"inherit"}}>Download PDF</button></div>}
+
+function GeminiFallback({msg,d,dm}:any){
+  const dmC=T.w[WX.indexOf(dm.wuxing)]||T.gold;
+  const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("exceeded");
+  const isKey = msg.includes("not set") || msg.includes("API_KEY") || msg.includes("API key");
+  const title = isQuota ? "今日AI额度已用完" : isKey ? "AI Key 未配置" : "AI生成暂不可用";
+  const hint = isQuota
+    ? "Google AI Studio 免费 key 每日有调用次数限制（约1500次），已于北京时间下午3点重置。建议：①新建一个 Gemini API Key ②或等待额度重置"
+    : isKey
+    ? "请在 Vercel 环境变量中设置 GEMINI_API_KEY"
+    : msg || "未知原因";
+  return (
+    <div style={{padding:"36px 0",borderBottom:`1px solid ${T.border}`}}>
+      <div style={{maxWidth:560,margin:"0 auto",background:T.card,border:`1px solid ${T.border}`,padding:"40px 36px",textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:16}}>{isQuota?"⏳":"🔑"}</div>
+        <h3 style={{fontSize:22,fontWeight:400,color:T.ink,margin:"0 0 12px"}}>{title}</h3>
+        <p style={{fontSize:14,color:T.mute,lineHeight:2,margin:"0 0 20px"}}>{hint}</p>
+        <p style={{fontSize:12,color:T.rose,margin:0,fontStyle:"italic"}}>命书数据已完整保存，AI功能恢复后可重新生成命书卷轴</p>
+      </div>
+    </div>
+  );
+}
 function Sec({num,title,en,children,wide}:any){return<div style={{padding:"56px 0",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",alignItems:"baseline",gap:16,marginBottom:32}}><span style={{fontSize:24,color:T.gold,fontWeight:300}}>{num}</span><div><h2 style={{fontSize:24,fontWeight:400,margin:0}}>{title}</h2><p style={{fontSize:14,color:T.mute,margin:0}}>{en}</p></div></div><div style={wide?{}:{maxWidth:760}}>{children}</div></div>}
 
 function Cover({d,dm,ed}:any){
