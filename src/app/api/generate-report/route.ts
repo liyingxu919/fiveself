@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
 import { getZiweiChart } from "@/lib/ziwei-engine";
-import { generateMingShu, generateBlueprint, getTotemImageUrl } from "@/lib/claude-mingshu";
+import { generateMingShu, getTotemImageUrl } from "@/lib/claude-mingshu";
 const SANITY_PROJECT_ID = "penxmsws";
 const SANITY_DATASET = "production";
 const SANITY_API = `https://${SANITY_PROJECT_ID}.api.sanity.io/v1/data/mutate/${SANITY_DATASET}`;
@@ -71,10 +71,18 @@ export async function POST(request: Request) {
     let geminiError = "";
     try {
       const result = await generateMingShu(mingShuInput);
-      if (result?.text) { aiMingShu = result.text; }
-      else if (result?.error) { geminiError = result.error; aiMingShu = `[Gemini: ${result.error}]`; }
-    } catch(e: any) { geminiError = e?.message||String(e); aiMingShu = `[Gemini异常: ${geminiError}]`; }
-    try { if (aiMingShu && !geminiError) { const bp = await generateBlueprint(aiMingShu, mingShuInput); if (bp) aiBlueprint = JSON.parse(bp); } } catch {}
+      if (result?.text) {
+        aiMingShu = result.text;
+        aiBlueprint = result.blueprint || null;
+      }
+      if (result?.error) {
+        geminiError = result.error;
+        aiMingShu = `[Gemini: ${result.error}]`;
+      }
+    } catch (e: any) {
+      geminiError = e?.message || String(e);
+      aiMingShu = `[Gemini异常: ${geminiError}]`;
+    }
     const totemImageUrl = getTotemImageUrl(mingShuInput, fullContent.totemDescription);
     const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint, totemImageUrl, geminiError };
 
