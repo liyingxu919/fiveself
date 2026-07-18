@@ -12,11 +12,30 @@ export interface MingShuInput {
 /** Gemini 写命书 */
 export async function generateMingShu(input: MingShuInput): Promise<{ text?: string; error?: string }> {
   if (!GEMINI_KEY) return { error: "GEMINI_API_KEY not set" };
-  const prompt = `你是资深命理师。请为${input.customerName}(${input.birthDate}出生)撰写500-800字命书。
-八字:${input.bazi} 五行:${input.wuxing} 格局:${input.geJu}
-日主:${input.strength} 十神:${input.shiShen} 神煞:${input.shenSha}
-紫微:${input.ziwei} 大运:${input.dayun}
-要求:口语化、具体到干支、有断有解、不套模板。中文。`;
+  const prompt = `你是从业三十年的资深命理师，精通《滴天髓》《穷通宝鉴》《三命通会》及盲派技法。请为命主${input.customerName}（${input.birthDate}出生）撰写一份完整的八字命书。
+
+【命主八字】
+八字四柱：${input.bazi}
+五行分布：${input.wuxing}
+格局：${input.geJu}
+日主强弱：${input.strength}
+十神配置：${input.shiShen}
+神煞：${input.shenSha}
+紫微斗数：${input.ziwei}
+大运流转：${input.dayun}
+
+【撰写要求】
+请写出1500字以上的完整命书，结构如下：
+
+一、命盘总览——日主特性、五行气势、格局高低，点出命局最核心的特点
+二、性格性情——从日主五行+十神+神煞分析性格优势与需注意之处，要具体到干支
+三、事业财运——格局配合大运看事业方向，财官印食各有论断，忌神喜神分清楚
+四、感情姻缘——配偶宫+桃花+日支藏干分析感情特质，正偏缘分说清楚
+五、健康养生——五行偏枯对应的身体注意事项，调候建议
+六、大运起伏——各步大运的吉凶变化，哪几步运最得力
+七、开运建议——用神对应的方向、颜色、行业、贵人特征等
+
+要求：口语化但专业，具体到干支（如"甲木参天""庚金劈甲""丙火暖局"），有断有解，绝不用"你的命运掌握在自己手中"之类模板套话。直接论断，用"命主""此命"称呼。每段起个小标题。`;
 
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
@@ -24,7 +43,7 @@ export async function generateMingShu(input: MingShuInput): Promise<{ text?: str
       body: JSON.stringify({
         system_instruction:{parts:[{text:"你是从业三十年的资深命理师，精通滴天髓、穷通宝鉴、盲派、紫微斗数。命书风格口语化、具体到八字干支、有断有解。绝不用模板腔。"}]},
         contents:[{parts:[{text:prompt}]}],
-        generationConfig:{maxOutputTokens:2000,temperature:0.8},
+        generationConfig:{maxOutputTokens:4000,temperature:0.8},
       }),
     });
     if (!res.ok) { const et = await res.text(); return { error: `HTTP ${res.status}: ${et.slice(0,200)}` }; }

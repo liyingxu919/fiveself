@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import ReactECharts from "echarts-for-react";
+import MingShuScroll from "@/components/report/MingShuScroll";
 
 /* ═══ DESIGN TOKENS ═══ */
 const T = {
@@ -14,7 +15,9 @@ const WX=["木","火","土","金","水"],WXE=["Wood","Fire","Earth","Metal","Wat
 function useData(id:string){const[d,setD]=useState<any>(null);const[l,setL]=useState(true);useEffect(()=>{fetch(`/api/admin/report/${id}`,{signal:AbortSignal.timeout(12000)}).then(r=>r.json()).then(j=>{if(j?.report?.content){setD(typeof j.report.content==="string"?JSON.parse(j.report.content):j.report.content)}}).catch(()=>{}).finally(()=>setL(false))},[id]);return{d,l}};
 
 export default function Report({params}:{params:Promise<{id:string}>}){const{id}=use(params);const{d,l}=useData(id);if(l)return<Wait>Loading...</Wait>;if(!d)return<Wait><p style={{fontSize:18}}>Report not found</p><a href="/order" style={{color:T.gold}}>Generate new</a></Wait>;
-  const dm=d.dayMaster,ed=d.wuxingDistribution,an=d.elementAnalysis,cp=d.colorPalette||[],wxData=WX.map(w=>ed.find((e:any)=>e.name===w)||{name:w,nameEn:WXE[WX.indexOf(w)],count:0,percentage:0});return<div style={{fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",background:T.bg,color:T.ink,minHeight:"100vh"}}><style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap');@media print{@page{size:A4;margin:12mm}body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.nop{display:none!important}}`}</style><PrintBtn/><Cover d={d} dm={dm} ed={ed}/><div style={{maxWidth:940,margin:"0 auto",padding:24}}><S1 d={d} dm={dm}/><S2 wxData={wxData} dm={dm} ed={ed}/><S3 d={d} wxData={wxData} dm={dm} an={an}/><S4 d={d} dm={dm} cp={cp}/><S5 d={d} dm={dm}/></div><Footer d={d}/></div>}
+  const dm=d.dayMaster,ed=d.wuxingDistribution,an=d.elementAnalysis,cp=d.colorPalette||[],wxData=WX.map(w=>ed.find((e:any)=>e.name===w)||{name:w,nameEn:WXE[WX.indexOf(w)],count:0,percentage:0});
+  const hasAiMingShu = d.aiMingShu && !d.aiMingShu.startsWith("[Gemini");
+  return<div style={{fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",background:T.bg,color:T.ink,minHeight:"100vh"}}><style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap');@media print{@page{size:A4;margin:12mm}body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.nop{display:none!important}}`}</style><PrintBtn/><Cover d={d} dm={dm} ed={ed}/><div style={{maxWidth:940,margin:"0 auto",padding:24}}><S1 d={d} dm={dm}/>{hasAiMingShu&&<MingShuScroll customerName={d.customerName} birthDate={d.birthDate} baziDisplay={d.baziDisplay} aiMingShu={d.aiMingShu} dayMaster={dm}/>}<S2 wxData={wxData} dm={dm} ed={ed}/><S3 d={d} wxData={wxData} dm={dm} an={an}/><S4 d={d} dm={dm} cp={cp}/><S5 d={d} dm={dm}/></div><Footer d={d}/></div>}
 
 function Wait({children}:any){return<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:T.bg,fontFamily:"'Cormorant Garamond','Noto Serif SC',Georgia,serif",color:T.ink,textAlign:"center",padding:48}}>{children}</div>}
 function PrintBtn(){return<div className="nop" style={{position:"fixed",top:20,right:20,zIndex:999}}><button onClick={()=>window.print()} style={{background:T.ink,color:"#fff",border:"none",padding:"14px 32px",fontSize:11,letterSpacing:"0.15em",textTransform:"uppercase",cursor:"pointer",borderRadius:2,fontFamily:"inherit"}}>Download PDF</button></div>}
@@ -24,7 +27,6 @@ function Cover({d,dm,ed}:any){
   const dmIdx=WX.indexOf(dm.wuxing),dmC=T.w[dmIdx]||T.gold;
   return<div style={{minHeight:"90vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"80px 24px",background:`linear-gradient(180deg,${T.card} 0%,${T.bg} 100%)`,borderBottom:`1px solid ${T.border}`}}>
     <p style={{fontSize:10,letterSpacing:"0.35em",textTransform:"uppercase",color:T.mute,margin:"0 0 40px"}}>Five Elements · Personal Blueprint</p>
-    {d.totemImageUrl&&<img src={d.totemImageUrl} alt="" style={{width:180,height:180,borderRadius:"50%",objectFit:"cover",marginBottom:24,boxShadow:`0 12px 48px ${dmC}30`}} onError={e=>{(e.target as HTMLImageElement).style.display="none"}}/>}
     <h1 style={{fontSize:"clamp(48px,8vw,96px)",fontWeight:300,lineHeight:1.05,letterSpacing:"-0.03em",margin:"0 0 28px"}}>五行<br/>人生蓝图</h1>
     <div style={{display:"flex",justifyContent:"center",gap:10,marginBottom:48}}>{ed.map((w:any,i:number)=><div key={i} style={{width:56,height:56,borderRadius:"50%",background:T.w[i],display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:300,color:"#fff"}}>{w.count}</div>)}</div>
     <div style={{width:140,height:140,borderRadius:"50%",background:dmC,margin:"0 auto 36px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:60,fontWeight:300,color:"#fff",boxShadow:`0 20px 60px ${dmC}35`}}>{dm.gan}</div>
@@ -121,7 +123,6 @@ function S4({d,dm,cp}:any){
 function S5({d,dm}:any){
   const dmC=T.w[WX.indexOf(dm.wuxing)]||T.gold;
   return<Sec num="Ⅴ" title="图腾与生活" en="Totem & Lifestyle">
-    {d.totemImageUrl&&<div style={{marginBottom:28,textAlign:"center"}}><img src={d.totemImageUrl} alt="五行图腾" style={{width:"100%",maxWidth:600,borderRadius:4,boxShadow:`0 8px 40px ${dmC}20`}} onError={e=>{(e.target as HTMLImageElement).style.display="none"}}/><p style={{fontSize:10,color:T.mute,marginTop:6}}>AI生成图腾 · Generated Totem Image</p></div>}
     <div style={{background:T.card,border:`1px solid ${T.border}`,padding:40,textAlign:"center",marginBottom:28}}><p style={{fontSize:24,color:dmC,fontWeight:300,margin:"0 0 10px"}}>{d.totemDescription?.en}</p><p style={{fontSize:15,color:T.mute,margin:"0 0 20px"}}>{d.totemDescription?.cn}</p><div style={{display:"flex",justifyContent:"center",gap:12}}>{(d.totemDescription?.elements||[]).map((e:string,i:number)=><span key={i} style={{padding:"8px 20px",border:`1px solid ${dmC}`,color:dmC,fontSize:12,borderRadius:2}}>{e}</span>)}</div></div>
     <div style={{display:"grid",gap:10}}>{d.lifestyleTips?.map((t:any,i:number)=><div key={i} style={{background:T.card,border:`1px solid ${T.border}`,padding:"18px 24px"}}><p style={{fontSize:15,color:dmC,margin:"0 0 4px"}}>{t.titleEn} · {t.title}</p><p style={{fontSize:13,lineHeight:1.9,color:T.mute,margin:0}}>{t.tipEn}</p><p style={{fontSize:13,lineHeight:1.9,color:T.ink,margin:"2px 0 0"}}>{t.tip}</p></div>)}</div>
   </Sec>;

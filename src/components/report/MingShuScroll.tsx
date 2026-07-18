@@ -1,0 +1,319 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { toPng } from "html-to-image";
+
+interface MingShuScrollProps {
+  customerName: string;
+  birthDate: string;
+  baziDisplay: {
+    year: string; month: string; day: string; hour: string;
+  };
+  aiMingShu: string;
+  dayMaster: { gan: string; wuxing: string };
+  totemImageUrl?: string;
+}
+
+export default function MingShuScroll({ customerName, birthDate, baziDisplay, aiMingShu, dayMaster, totemImageUrl }: MingShuScrollProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!scrollRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(scrollRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: "#f3ede3",
+      });
+      const link = document.createElement("a");
+      link.download = `命书_${customerName}_${Date.now().toString(36)}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e) {
+      console.error("Download failed:", e);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // Parse Gemini text into sections
+  const sections = aiMingShu
+    .split(/(?=一、|二、|三、|四、|五、|六、|七、)/)
+    .filter((s) => s.trim());
+
+  return (
+    <div id="mingshu-scroll-section" className="nop" style={{ padding: "48px 0" }}>
+      {/* ===== SCROLL IMAGE ===== */}
+      <div
+        ref={scrollRef}
+        style={{
+          width: 640,
+          margin: "0 auto",
+          background: "#f3ede3",
+          position: "relative",
+          fontFamily:
+            "\"Noto Serif SC\", \"STSong\", \"SimSun\", \"Songti SC\", serif",
+          color: "#2b2318",
+          boxShadow: "0 4px 32px rgba(80,60,30,0.15)",
+        }}
+      >
+        {/* Subtle edge vignette — left/right darker */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(90deg, rgba(160,140,110,0.25) 0%, transparent 8%, transparent 92%, rgba(160,140,110,0.25) 100%)",
+            pointerEvents: "none",
+            zIndex: 1,
+          }}
+        />
+
+        {/* Inner scroll — main content */}
+        <div
+          style={{
+            padding: "64px 56px 56px",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          {/* ═══ TOP ORNAMENT ═══ */}
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            {/* Decorative top line */}
+            <svg
+              width="100%"
+              height="28"
+              viewBox="0 0 528 28"
+              style={{ display: "block", marginBottom: 4 }}
+            >
+              <line
+                x1="0" y1="14" x2="220" y2="14"
+                stroke="#c8b898" strokeWidth="0.8"
+              />
+              <line
+                x1="308" y1="14" x2="528" y2="14"
+                stroke="#c8b898" strokeWidth="0.8"
+              />
+              <circle cx="236" cy="14" r="3" fill="#c8b898" />
+              <circle cx="264" cy="14" r="5" fill="none" stroke="#c8b898" strokeWidth="1.2" />
+              <circle cx="292" cy="14" r="3" fill="#c8b898" />
+            </svg>
+
+            {/* Title */}
+            <h2
+              style={{
+                fontSize: 34,
+                fontWeight: 400,
+                letterSpacing: "0.35em",
+                margin: "0 0 16px",
+                color: "#2b2318",
+              }}
+            >
+              八字命书
+            </h2>
+
+            {/* Gold divider */}
+            <div
+              style={{
+                width: 60,
+                height: 1.5,
+                background: "#b8956a",
+                margin: "0 auto 24px",
+              }}
+            />
+
+            {/* Customer info line */}
+            <div
+              style={{
+                fontSize: 14,
+                color: "#5c4e3d",
+                letterSpacing: "0.12em",
+                lineHeight: 2,
+              }}
+            >
+              <p style={{ margin: "0 0 2px" }}>
+                <strong style={{ fontSize: 18, color: "#2b2318" }}>
+                  {customerName}
+                </strong>
+                <span style={{ margin: "0 6px" }}>·</span>
+                {birthDate}出生
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: "#8c7b65" }}>
+                八字四柱：{baziDisplay.year}年 {baziDisplay.month}月{" "}
+                {baziDisplay.day}日 {baziDisplay.hour}时
+                <span style={{ margin: "0 10px" }}>│</span>
+                日主：{dayMaster.gan}（{dayMaster.wuxing}）
+              </p>
+            </div>
+          </div>
+
+          {/* ═══ MAIN TEXT BODY ═══ */}
+          <div
+            style={{
+              fontSize: 15,
+              lineHeight: 2.3,
+              color: "#2b2318",
+              textAlign: "justify",
+            }}
+          >
+            {sections.length > 0
+              ? sections.map((section, i) => {
+                  const lines = section.trim().split("\n");
+                  const title = lines[0];
+                  const body = lines.slice(1).join("\n").trim();
+                  return (
+                    <div key={i} style={{ marginBottom: i < sections.length - 1 ? 32 : 0 }}>
+                      <h3
+                        style={{
+                          fontSize: 17,
+                          fontWeight: 600,
+                          color: "#3c2e1e",
+                          margin: "0 0 12px",
+                          letterSpacing: "0.06em",
+                          borderLeft: "3px solid #b8956a",
+                          paddingLeft: 12,
+                        }}
+                      >
+                        {title}
+                      </h3>
+                      <p
+                        style={{
+                          margin: 0,
+                          textIndent: "2em",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {body}
+                      </p>
+                    </div>
+                  );
+                })
+              : (
+                  <p style={{ margin: 0, textIndent: "2em", whiteSpace: "pre-wrap" }}>
+                    {aiMingShu}
+                  </p>
+                )}
+          </div>
+
+          {/* ═══ RED SEAL ═══ */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "flex-end",
+              marginTop: 48,
+              paddingTop: 32,
+              borderTop: "1px solid #e0d5c0",
+              gap: 16,
+            }}
+          >
+            <div style={{ textAlign: "right" }}>
+              <p
+                style={{
+                  fontSize: 10,
+                  color: "#b8956a",
+                  margin: "0 0 4px",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                五玄斋
+              </p>
+              <p
+                style={{
+                  fontSize: 10,
+                  color: "#b8956a",
+                  margin: 0,
+                  letterSpacing: "0.1em",
+                }}
+              >
+                · 出品 ·
+              </p>
+            </div>
+
+            {/* Seal stamp */}
+            <div
+              style={{
+                width: 60,
+                height: 60,
+                border: "2.5px solid #b84040",
+                color: "#b84040",
+                fontSize: 16,
+                fontWeight: 700,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1.3,
+                letterSpacing: "0.15em",
+                transform: "rotate(-6deg)",
+                userSelect: "none",
+                flexShrink: 0,
+              }}
+            >
+              <span>八字</span>
+              <span>合验</span>
+            </div>
+          </div>
+
+          {/* ═══ BOTTOM ORNAMENT ═══ */}
+          <div style={{ textAlign: "center", marginTop: 40 }}>
+            <svg
+              width="100%"
+              height="20"
+              viewBox="0 0 528 20"
+              style={{ display: "block" }}
+            >
+              <line
+                x1="0" y1="10" x2="228" y2="10"
+                stroke="#c8b898" strokeWidth="0.8"
+              />
+              <line
+                x1="300" y1="10" x2="528" y2="10"
+                stroke="#c8b898" strokeWidth="0.8"
+              />
+              <circle cx="248" cy="10" r="2.5" fill="#b8956a" />
+              <circle cx="264" cy="10" r="4" fill="none" stroke="#b8956a" strokeWidth="1" />
+              <circle cx="280" cy="10" r="2.5" fill="#b8956a" />
+            </svg>
+            <p
+              style={{
+                fontSize: 9,
+                color: "#c8b898",
+                margin: "6px 0 0",
+                letterSpacing: "0.25em",
+              }}
+            >
+              FIVE ELEMENTS · PERSONAL DESTINY SCROLL
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ DOWNLOAD ═══ */}
+      <div style={{ textAlign: "center", marginTop: 32 }}>
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          style={{
+            background: downloading ? "#8c8076" : "#3c342e",
+            color: "#faf6f0",
+            border: "none",
+            padding: "16px 44px",
+            fontSize: 13,
+            letterSpacing: "0.15em",
+            cursor: downloading ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+            borderRadius: 2,
+          }}
+        >
+          {downloading ? "生成中..." : "下载命书卷轴 · DOWNLOAD SCROLL"}
+        </button>
+        <p style={{ fontSize: 10, color: "#8c8076", marginTop: 8 }}>
+          高清PNG · 可打印收藏 · 2x分辨率
+        </p>
+      </div>
+    </div>
+  );
+}
