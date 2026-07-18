@@ -10,7 +10,7 @@ export default function OrderPage() {
   const { lang } = useLang();
   const [form, setForm] = useState({
     name: "", email: "", year: "", month: "", day: "", hour: "",
-    birthplace: "", product: "five-elements-blueprint", notes: "",
+    birthplace: "", gender: "", product: "five-elements-blueprint", notes: "",
   });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -150,6 +150,21 @@ export default function OrderPage() {
                       onChange={e => update("birthplace", e.target.value)}
                       placeholder={placeholder("e.g. Beijing", "例：北京")}
                       className="w-full border border-[var(--color-border)] bg-white px-4 py-3 text-sm focus:outline-none focus:border-[var(--color-green-muted)]" />
+                  </div>
+                </div>
+
+                {/* Gender */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2 text-[var(--color-text-main)]">
+                    {label("Gender", "性别")} *
+                  </label>
+                  <div className="flex gap-4">
+                    {[{v:"male",en:"Male",zh:"男"},{v:"female",en:"Female",zh:"女"}].map(g=>(
+                      <label key={g.v} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"12px 16px",border:form.gender===g.v?"2px solid var(--color-green-dark)":"1px solid var(--color-border)",background:form.gender===g.v?"var(--color-green-dark)":"#fff",color:form.gender===g.v?"#fff":"var(--color-text-main)",cursor:"pointer",fontSize:14,fontWeight:500}}>
+                        <input type="radio" name="gender" value={g.v} checked={form.gender===g.v} onChange={e=>update("gender",e.target.value)} style={{display:"none"}} />
+                        {isZh?g.zh:g.en}
+                      </label>
+                    ))}
                   </div>
                 </div>
 

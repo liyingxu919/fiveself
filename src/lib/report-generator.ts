@@ -118,7 +118,7 @@ function tiaoHou(dmWx:number,mz:number):string{
 }
 
 /* ═══ 主函数 ═══ */
-export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string):ReportContent{
+export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string,gender:string="male"):ReportContent{
   const dg=b.dayPillar.gan,dz=b.dayPillar.zhi,dw=[0,0,1,1,2,2,3,3,4,4][dg];
   const dmN=TIAN_GAN[dg],dmZN=DI_ZHI[dz],dmWxN=WUXING_NAMES[dw],dmWxE=WUXING_NAMES_EN[dw];
   const mz=b.monthPillar.zhi; const yg=b.yearPillar.gan;
@@ -186,7 +186,7 @@ export function generateReportContent(b:BaziResult,nm:string,bd:string,bt:string
     dominantElement:domI,secondaryElement:secI,wuxingDistribution:wd,
     elementAnalysis:{profile:`日主${dmN}(${dmWxN})，${domN}${st[0].c}重${secN}${st[1].c}辅，${missing.length>0?"缺"+missing.map(m=>m.name).join("、"):"五行俱全"}.`,dominant:{name:domN,nameEn:WUXING_NAMES_EN[domI],desc:`${domN}${st[0].c}重，${st[0].c>=4?"气势旺盛":st[0].c>=2?"力量适中":"偏弱"}.`,descEn:`${WUXING_NAMES_EN[domI]} count ${st[0].c}.`},secondary:{name:secN,nameEn:WUXING_NAMES_EN[secI],desc:`${secN}辅佐${domN}.`,descEn:`${WUXING_NAMES_EN[secI]} supports ${WUXING_NAMES_EN[domI]}.`},missing},
     colorPalette:cp[dw],shengXiao:{name:b.shengXiao,nameEn:b.shengXiaoEn},
-    dayun:calcDayunAccurate(b, "male", bd.split("-")[1] ? parseInt(bd.split("-")[1]) : 6, bd.split("-")[2] ? parseInt(bd.split("-")[2]) : 15).map(d => ({age:`${d.age}岁`,ganzhi:d.ganzhi,nayin:d.nayin,wuxing:"土",desc:"",analysis:d.analysis})),
+    dayun:calcDayunAccurate(b, gender, bd.split("-")[1] ? parseInt(bd.split("-")[1]) : 6, bd.split("-")[2] ? parseInt(bd.split("-")[2]) : 15).map(d => ({age:`${d.age}岁`,ganzhi:d.ganzhi,nayin:d.nayin,wuxing:"土",desc:"",analysis:d.analysis})),
     disuitianshu:{yongshen:ysN,yongshenEn:ysE,analysis:ysExpl,analysisEn:`Day Master ${lv}. Yong Shen: ${ysE}.`,grade:lv==="偏旺"?"旺":lv==="偏弱"?"弱":"中"},
     mangpai:{pastTen:`${WUXING_NAMES[(dw+1)%5]}运奠基期`,pastTenEn:`${WUXING_NAMES_EN[(dw+1)%5]} foundation`,currentTen:`${ysN}运发展期`,currentTenEn:`${ysE} growth`,flow:`日主${dmN}(${dmWxN})，${domN}${st[0].c}重做功，${ysN}通关。`},
     lucky:{colors:cp[dw].map(c=>c.name),environments:[dw===0?"森林公园":dw===1?"阳光开放空间":dw===2?"山丘田野":dw===3?"现代建筑图书馆":"海边湖畔",dw===0?"茶园书房":dw===1?"社交场所":dw===2?"家居空间":dw===3?"画廊博物馆":"浴室泳池","柔和通风空间","自然元素和艺术环境","安静专注区域","和谐人际场所"],timing:[["春","夏","季末","秋","冬"][dw],"卯时5-7时","新月满月前后",`逢${ysN}之岁`,`与日柱${dgz}三合六合年`]},

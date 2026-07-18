@@ -15,7 +15,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.fiveself.com";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, year, month, day, hour, birthplace, product, notes } = body;
+    const { name, email, year, month, day, hour, birthplace, gender, product, notes } = body;
 
     // Validate required fields
     if (!name || !email || !year || !month || !day) {
@@ -39,14 +39,16 @@ export async function POST(request: Request) {
     const bazi = calculateBazi({ year: y, month: m, day: d, hour: h });
 
     // Calculate 紫微斗数
-    const ziwei = getZiweiChart(y, m, d, h, "male");
+    const g = (gender === "female") ? "female" : "male";
+    const ziwei = getZiweiChart(y, m, d, h, g);
 
     // Generate report content
     const report = generateReportContent(
       bazi,
       name,
       `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
-      `${String(h).padStart(2, "0")}:00`
+      `${String(h).padStart(2, "0")}:00`,
+      g
     );
 
     // Attach 紫微 data
