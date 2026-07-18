@@ -1,8 +1,9 @@
 /**
- * 命书引擎: Gemini一次调用 — 写命书 + 出五行蓝图
- * 二合一节省一半API配额
+ * 命书引擎: Gemini 2.5 Flash 主模型 + DeepSeek 兜底
+ * 一次调用完成命书正文 + 五行蓝图JSON
  */
 const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
+const DEEPSEEK_KEY = process.env.DEEPSEEK_API_KEY || "";
 
 export interface MingShuInput {
   customerName: string; birthDate: string; birthTime?: string;
@@ -14,13 +15,11 @@ export interface MingShuResult {
   text?: string;
   blueprint?: any;
   error?: string;
+  provider?: string; // which model served the request
 }
 
-/** 一次性生成命书正文 + 五行蓝图JSON（二合一，省配额） */
-export async function generateMingShu(input: MingShuInput): Promise<MingShuResult> {
-  if (!GEMINI_KEY) return { error: "GEMINI_API_KEY not set" };
-
-  const prompt = `你是资深命理师+东方美学设计师。请为命主${input.customerName}（${input.birthDate}出生）完成两项任务，一并回复。
+function buildPrompt(input: MingShuInput): string {
+  return `你是资深命理师+东方美学设计师。请为命主${input.customerName}（${input.birthDate}出生）完成两项任务，一并回复。
 
 【命主八字】
 八字四柱：${input.bazi}
@@ -50,65 +49,135 @@ export async function generateMingShu(input: MingShuInput): Promise<MingShuResul
 
 ===回复格式===
 先写完整命书正文，然后单独一行写【JSON】，再写蓝图JSON。`;
-
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{
-              text: "你是资深命理师兼东方美学设计师。命书风格：口语化、具体到干支、有断有解。蓝图JSON：配色、图腾、关键词。按指定格式回复。"
-            }]
-          },
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 6000, temperature: 0.8 },
-        }),
-      }
-    );
-
-    if (!res.ok) {
-      const et = await res.text();
-      return { error: `HTTP ${res.status}: ${et.slice(0, 200)}` };
-    }
-
-    const data = await res.json();
-    const fullText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!fullText) {
-      return { error: `Empty: ${JSON.stringify(data).slice(0, 200)}` };
-    }
-
-    // Split into 命书 + 蓝图JSON
-    const jsonMarker = fullText.indexOf("【JSON】");
-    let mingshuText = "";
-    let blueprint: any = null;
-
-    if (jsonMarker > 0) {
-      mingshuText = fullText.substring(0, jsonMarker).trim();
-      const jsonPart = fullText.substring(jsonMarker + 6).trim();
-      const match = jsonPart.match(/\{[\s\S]*\}/);
-      if (match) {
-        try { blueprint = JSON.parse(match[0]); } catch { /* ignore */ }
-      }
-    } else {
-      // Fallback: try to find JSON anywhere
-      mingshuText = fullText;
-      const match = fullText.match(/\{[\s\S]*"colors"[\s\S]*\}/);
-      if (match) {
-        mingshuText = fullText.substring(0, fullText.indexOf(match[0])).trim();
-        try { blueprint = JSON.parse(match[0]); } catch { /* ignore */ }
-      }
-    }
-
-    return { text: mingshuText, blueprint };
-  } catch (e: any) {
-    return { error: e?.message || String(e) };
-  }
 }
 
-/** Pollinations.ai 生成五行图腾图片URL（即时生成，无需API key） */
+/** 解析 Gemini/DeepSeek 返回的文本，分离命书+蓝图JSON */
+function parseResponse(fullText: string): { text: string; blueprint: any } {
+  const jsonMarker = fullText.indexOf("【JSON】");
+  let mingshuText = "";
+  let blueprint: any = null;
+
+  if (jsonMarker > 0) {
+    mingshuText = fullText.substring(0, jsonMarker).trim();
+    const jsonPart = fullText.substring(jsonMarker + 6).trim();
+    const match = jsonPart.match(/\{[\s\S]*\}/);
+    if (match) {
+      try { blueprint = JSON.parse(match[0]); } catch { /* ignore */ }
+    }
+  } else {
+    mingshuText = fullText;
+    const match = fullText.match(/\{[\s\S]*"colors"[\s\S]*\}/);
+    if (match) {
+      mingshuText = fullText.substring(0, fullText.indexOf(match[0])).trim();
+      try { blueprint = JSON.parse(match[0]); } catch { /* ignore */ }
+    }
+  }
+
+  return { text: mingshuText, blueprint };
+}
+
+/** 主模型: Gemini 2.5 Flash */
+async function callGemini(prompt: string): Promise<string> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: "你是资深命理师兼东方美学设计师。命书风格：口语化、具体到干支、有断有解。按指定格式回复：先命书正文，再【JSON】标记，再蓝图JSON。" }]
+        },
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 6000, temperature: 0.8 },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const et = await res.text();
+    throw new Error(`Gemini HTTP ${res.status}: ${et.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error(`Gemini empty: ${JSON.stringify(data).slice(0, 200)}`);
+  return text;
+}
+
+/** 兜底模型: DeepSeek (OpenAI-compatible) */
+async function callDeepSeek(prompt: string): Promise<string> {
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${DEEPSEEK_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: "你是资深命理师兼东方美学设计师。命书风格：口语化、具体到干支、有断有解。按指定格式回复：先命书正文，再【JSON】标记，再蓝图JSON。" },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 6000,
+      temperature: 0.8,
+    }),
+  });
+
+  if (!res.ok) {
+    const et = await res.text();
+    throw new Error(`DeepSeek HTTP ${res.status}: ${et.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error(`DeepSeek empty: ${JSON.stringify(data).slice(0, 200)}`);
+  return text;
+}
+
+/** 生成命书: Gemini优先 → DeepSeek兜底 */
+export async function generateMingShu(input: MingShuInput): Promise<MingShuResult> {
+  const prompt = buildPrompt(input);
+
+  // 1) Try Gemini 2.5 Flash
+  if (GEMINI_KEY) {
+    try {
+      const raw = await callGemini(prompt);
+      const parsed = parseResponse(raw);
+      return { ...parsed, provider: "gemini-2.5-flash" };
+    } catch (e: any) {
+      const geminiErr = e?.message || String(e);
+      console.warn("[Gemini failed, trying DeepSeek]:", geminiErr);
+
+      // 2) Fallback to DeepSeek
+      if (DEEPSEEK_KEY) {
+        try {
+          const raw = await callDeepSeek(prompt);
+          const parsed = parseResponse(raw);
+          return { ...parsed, provider: "deepseek-chat" };
+        } catch (e2: any) {
+          return { error: `Gemini: ${geminiErr} | DeepSeek: ${e2?.message || String(e2)}` };
+        }
+      }
+
+      return { error: geminiErr };
+    }
+  }
+
+  // No Gemini key, try DeepSeek directly
+  if (DEEPSEEK_KEY) {
+    try {
+      const raw = await callDeepSeek(prompt);
+      const parsed = parseResponse(raw);
+      return { ...parsed, provider: "deepseek-chat" };
+    } catch (e: any) {
+      return { error: `DeepSeek: ${e?.message || String(e)}` };
+    }
+  }
+
+  return { error: "No API key configured. Set GEMINI_API_KEY or DEEPSEEK_API_KEY." };
+}
+
+/** Pollinations.ai 生成五行图腾图片URL */
 export function getTotemImageUrl(
   input: MingShuInput,
   totemDesc?: { cn?: string; en?: string; elements?: string[] }
