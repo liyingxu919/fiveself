@@ -24,6 +24,7 @@ function Cover({d,dm,ed}:any){
   const dmIdx=WX.indexOf(dm.wuxing),dmC=T.w[dmIdx]||T.gold;
   return<div style={{minHeight:"90vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"80px 24px",background:`linear-gradient(180deg,${T.card} 0%,${T.bg} 100%)`,borderBottom:`1px solid ${T.border}`}}>
     <p style={{fontSize:10,letterSpacing:"0.35em",textTransform:"uppercase",color:T.mute,margin:"0 0 40px"}}>Five Elements · Personal Blueprint</p>
+    {d.totemImageUrl&&<img src={d.totemImageUrl} alt="" style={{width:180,height:180,borderRadius:"50%",objectFit:"cover",marginBottom:24,boxShadow:`0 12px 48px ${dmC}30`}} onError={e=>{(e.target as HTMLImageElement).style.display="none"}}/>}
     <h1 style={{fontSize:"clamp(48px,8vw,96px)",fontWeight:300,lineHeight:1.05,letterSpacing:"-0.03em",margin:"0 0 28px"}}>五行<br/>人生蓝图</h1>
     <div style={{display:"flex",justifyContent:"center",gap:10,marginBottom:48}}>{ed.map((w:any,i:number)=><div key={i} style={{width:56,height:56,borderRadius:"50%",background:T.w[i],display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:300,color:"#fff"}}>{w.count}</div>)}</div>
     <div style={{width:140,height:140,borderRadius:"50%",background:dmC,margin:"0 auto 36px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:60,fontWeight:300,color:"#fff",boxShadow:`0 20px 60px ${dmC}35`}}>{dm.gan}</div>
@@ -120,6 +121,7 @@ function S4({d,dm,cp}:any){
 function S5({d,dm}:any){
   const dmC=T.w[WX.indexOf(dm.wuxing)]||T.gold;
   return<Sec num="Ⅴ" title="图腾与生活" en="Totem & Lifestyle">
+    {d.totemImageUrl&&<div style={{marginBottom:28,textAlign:"center"}}><img src={d.totemImageUrl} alt="五行图腾" style={{width:"100%",maxWidth:600,borderRadius:4,boxShadow:`0 8px 40px ${dmC}20`}} onError={e=>{(e.target as HTMLImageElement).style.display="none"}}/><p style={{fontSize:10,color:T.mute,marginTop:6}}>AI生成图腾 · Generated Totem Image</p></div>}
     <div style={{background:T.card,border:`1px solid ${T.border}`,padding:40,textAlign:"center",marginBottom:28}}><p style={{fontSize:24,color:dmC,fontWeight:300,margin:"0 0 10px"}}>{d.totemDescription?.en}</p><p style={{fontSize:15,color:T.mute,margin:"0 0 20px"}}>{d.totemDescription?.cn}</p><div style={{display:"flex",justifyContent:"center",gap:12}}>{(d.totemDescription?.elements||[]).map((e:string,i:number)=><span key={i} style={{padding:"8px 20px",border:`1px solid ${dmC}`,color:dmC,fontSize:12,borderRadius:2}}>{e}</span>)}</div></div>
     <div style={{display:"grid",gap:10}}>{d.lifestyleTips?.map((t:any,i:number)=><div key={i} style={{background:T.card,border:`1px solid ${T.border}`,padding:"18px 24px"}}><p style={{fontSize:15,color:dmC,margin:"0 0 4px"}}>{t.titleEn} · {t.title}</p><p style={{fontSize:13,lineHeight:1.9,color:T.mute,margin:0}}>{t.tipEn}</p><p style={{fontSize:13,lineHeight:1.9,color:T.ink,margin:"2px 0 0"}}>{t.tip}</p></div>)}</div>
   </Sec>;

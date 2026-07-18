@@ -35,6 +35,15 @@ export async function generateMingShu(input: MingShuInput): Promise<{ text?: str
   } catch(e: any) { return { error: e?.message || String(e) }; }
 }
 
+/** Pollinations.ai 生成五行图腾图片URL (即时生成，无需等待) */
+export function getTotemImageUrl(input: MingShuInput, totemDesc?: { cn?: string; en?: string; elements?: string[] }): string {
+  const elements = totemDesc?.elements?.join(",") || "";
+  const prompt = encodeURIComponent(
+    `Chinese ink wash painting, ${totemDesc?.cn || input.wuxing + " totem"}, ${totemDesc?.en || "oriental five elements"}, ${elements}, misty ethereal, gold leaf details, silk scroll texture, Song dynasty aesthetic, masterpiece, spiritual, traditional Chinese art, vertical composition`
+  );
+  return `https://image.pollinations.ai/prompt/${prompt}?width=1024&height=1024&model=flux&nologo=true&seed=${Date.now() % 100000}`;
+}
+
 /** Gemini 根据命书出五行蓝图 (替代ChatGPT) */
 export async function generateBlueprint(mingshu: string, input: MingShuInput): Promise<any> {
   if (!GEMINI_KEY) return null;

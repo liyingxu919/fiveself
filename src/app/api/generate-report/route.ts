@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
 import { getZiweiChart } from "@/lib/ziwei-engine";
-import { generateMingShu, generateBlueprint } from "@/lib/claude-mingshu";
+import { generateMingShu, generateBlueprint, getTotemImageUrl } from "@/lib/claude-mingshu";
 const SANITY_PROJECT_ID = "penxmsws";
 const SANITY_DATASET = "production";
 const SANITY_API = `https://${SANITY_PROJECT_ID}.api.sanity.io/v1/data/mutate/${SANITY_DATASET}`;
@@ -75,7 +75,8 @@ export async function POST(request: Request) {
       else if (result?.error) { geminiError = result.error; aiMingShu = `[Gemini: ${result.error}]`; }
     } catch(e: any) { geminiError = e?.message||String(e); aiMingShu = `[Gemini异常: ${geminiError}]`; }
     try { if (aiMingShu && !geminiError) { const bp = await generateBlueprint(aiMingShu, mingShuInput); if (bp) aiBlueprint = JSON.parse(bp); } } catch {}
-    const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint, geminiError };
+    const totemImageUrl = getTotemImageUrl(mingShuInput, fullContent.totemDescription);
+    const contentWithAI = { ...fullContent, aiMingShu, aiBlueprint, totemImageUrl, geminiError };
 
     // Save report to Sanity for online access
     const reportUrl = `${SITE_URL}/report/${report.reportId}`;
