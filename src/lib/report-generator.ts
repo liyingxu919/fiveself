@@ -102,7 +102,7 @@ function calcGeJu(bazi: BaziResult, dmWx:number): {name:string;analysis:string} 
 }
 
 /* ═══ 十神解释 ═══ */
-function getShiShen(dg:number,tg:number):string{const dw=[0,0,1,1,2,2,3,3,4,4][dg],tw=[0,0,1,1,2,2,3,3,4,4][tg];const r=(tw-dw+5)%5;const sy=(dg%2)===(tg%2);return({"0_true":"比肩","0_false":"劫财","1_false":"食神","1_true":"伤官","2_true":"正财","2_false":"偏财","3_true":"正官","3_false":"七杀","4_true":"正印","4_false":"偏印"} as any)[`${r}_${sy}`]||"比肩";}
+function getShiShen(dg:number,tg:number):string{const dw=[0,0,1,1,2,2,3,3,4,4][dg],tw=[0,0,1,1,2,2,3,3,4,4][tg];const r=(tw-dw+5)%5;const sy=(dg%2)===(tg%2);return({"0_true":"比肩","0_false":"劫财","1_true":"食神","1_false":"伤官","2_false":"正财","2_true":"偏财","3_false":"正官","3_true":"七杀","4_false":"正印","4_true":"偏印"} as any)[`${r}_${sy}`]||"比肩";}
 
 function shiShenExplain(ss:string):string{const m:Record<string,string>={"比肩":"自我意识强，独立自主，有竞争心","劫财":"社交能力强，讲义气，但需注意冲动消费","食神":"温和善良，有才华和创造力，懂得享受","伤官":"聪明敏锐，有艺术天赋，但言辞有时尖锐","正财":"重视物质，勤俭务实，善于理财","偏财":"慷慨大方，有投机头脑，财来财去","正官":"自律守法，有责任心，重视名誉地位","七杀":"有魄力胆识，敢作敢为，适合挑战性工作","正印":"心地善良，重视学业，有贵人相助","偏印":"思维独特，有专长，但有时孤僻"};return m[ss]||"";}
 

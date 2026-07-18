@@ -3,6 +3,7 @@ import { calculateBazi } from "@/lib/bazi";
 import { generateReportContent } from "@/lib/report-generator";
 import { getZiweiChart } from "@/lib/ziwei-engine";
 import { generateMingShu, getTotemImageUrl } from "@/lib/claude-mingshu";
+import { extractBaziFacts, validateMingShu } from "@/lib/bazi-validator";
 const SANITY_PROJECT_ID = "penxmsws";
 const SANITY_DATASET = "production";
 const SANITY_API = `https://${SANITY_PROJECT_ID}.api.sanity.io/v1/data/mutate/${SANITY_DATASET}`;
@@ -78,15 +79,42 @@ export async function POST(request: Request) {
     };
     let conciseMingShu = "";
     let fullMingShu = "";
-    let aiMingShu = ""; // legacy fallback
+    let aiMingShu = "";
     let aiBlueprint: any = null;
     let geminiError = "";
+    let validationRetries = 0;
+
     try {
       const result = await generateMingShu(mingShuInput);
       if (result?.concise || result?.full) {
         conciseMingShu = result.concise || result.full || "";
         fullMingShu = result.full || result.concise || "";
-        aiMingShu = fullMingShu; // legacy compatibility
+        aiMingShu = fullMingShu;
+
+        // Validate AI output against calculated bazi facts
+        const facts = extractBaziFacts(fullContent);
+        const validation = validateMingShu(fullMingShu, facts);
+
+        if (!validation.passed && validationRetries < 1 && result.provider) {
+          // Retry with correction notes
+          validationRetries++;
+          const correctedInput = {
+            ...mingShuInput,
+            bazi: `${mingShuInput.bazi}\n\n${validation.correctionNote}`,
+          };
+          try {
+            const retryResult = await generateMingShu(correctedInput);
+            if (retryResult?.full) {
+              fullMingShu = retryResult.full;
+              conciseMingShu = retryResult.concise || retryResult.full;
+              aiMingShu = fullMingShu;
+            }
+          } catch { /* keep original if retry fails */ }
+        } else if (!validation.passed) {
+          // Still has errors but no more retries — still save original, flag for admin
+          geminiError = `Validation warnings: ${validation.errors.map(e => `${e.field}: expected ${e.expected}, got ${e.found}`).join("; ")}`;
+        }
+
         aiBlueprint = result.blueprint || null;
       } else if (result?.error) {
         geminiError = result.error;
