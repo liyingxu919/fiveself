@@ -1961,7 +1961,10 @@ async function fetchLiveData(type) {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
-    const res = await fetch(`/api/lottery-proxy?type=${type}`, { signal: controller.signal });
+    // Use local proxy on localhost:3456, fiveself proxy otherwise
+    const isLocalServer = window.location.port === '3456';
+    const proxyUrl = isLocalServer ? `/api/lottery?type=${type}` : `/api/lottery-proxy?type=${type}`;
+    const res = await fetch(proxyUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (res.ok) {
       const draws = await res.json();
